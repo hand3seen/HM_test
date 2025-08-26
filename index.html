@@ -36,6 +36,11 @@
     .drop{position:absolute;inset:0;border:2px dashed #0005;border-radius:10px;display:none;place-items:center;background:#00000008}
     .panel.dragover .drop{display:grid}
     .panel.selected{outline:3px solid #000}
+    .panel{transform-origin:center center}
+    .panel.flip180{transform:rotate(180deg)}
+    /* Hide guides while exporting */
+    .exporting .panel .hint{display:none}
+    .exporting .panel.selected{outline:none}
     img.img-selected{outline:2px dashed #000; outline-offset:2px}
 
     .status{font-size:12px;opacity:.75;margin-left:auto}
@@ -256,7 +261,19 @@
   $('#safeToggle').addEventListener('change', (e)=>{ letter.classList.toggle('show-safe', e.target.checked); });
 
   // Exports
-  $('#exportPngBtn').addEventListener('click', async ()=>{ setStatus('Rendering workspace PNG…'); const canvas = await html2canvas(workspace, {backgroundColor:'#ffffff', scale:2}); const a=document.createElement('a'); a.download='headmosh-workspace.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Workspace PNG exported.'); });
+  $('#exportPngBtn').addEventListener('click', async ()=>{
+    setStatus('Rendering workspace PNG (top row flipped)…');
+    const allPanels = [...workspace.querySelectorAll('.panel')];
+    const topRow = allPanels.slice(0,4);
+    topRow.forEach(p=>p.classList.add('flip180'));
+    workspace.classList.add('exporting');
+    await new Promise(r=>requestAnimationFrame(r));
+    const canvas = await html2canvas(workspace, {backgroundColor:'#ffffff', scale:2});
+    topRow.forEach(p=>p.classList.remove('flip180'));
+    workspace.classList.remove('exporting');
+    const a=document.createElement('a'); a.download='headmosh-workspace-toprow-flipped.png'; a.href=canvas.toDataURL('image/png'); a.click();
+    setStatus('Workspace PNG exported (top row flipped).');
+  }); const a=document.createElement('a'); a.download='headmosh-workspace.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Workspace PNG exported.'); });
   $('#exportLetterBtn').addEventListener('click', async ()=>{ if(!letter.children.length) fillLetter(); setStatus('Rendering letter PNG…'); const canvas = await html2canvas(letter, {backgroundColor:'#ffffff', scale:2}); const a=document.createElement('a'); a.download='headmosh-letter-8x11.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Letter PNG exported.'); });
   $('#exportLetter300Btn').addEventListener('click', async ()=>{ if(!letter.children.length) fillLetter(); setStatus('Rendering 300‑DPI PNG…'); const SCALE_300 = 300/96; // 3.125 → 2550×3300
     const canvas = await html2canvas(letter, {backgroundColor:'#ffffff', scale:SCALE_300}); const a=document.createElement('a'); a.download='headmosh-letter-300dpi.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('300‑DPI PNG exported.'); });
