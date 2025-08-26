@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Headmosh Zine Lab — Letter Grid (8.5×11)</title>
-  <meta name="description" content="Make an 8‑panel zine on a precise 8.5×11 letter sheet. Locked panel ratio, drag‑and‑drop, copy‑paste images, bold B/W asset library, PNG export, and print‑ready layout.">
+  <meta name="description" content="Make an 8‑panel zine on a precise 8.5×11 letter sheet. Locked panel ratio, drag‑and‑drop, copy‑paste images, bold B/W asset library, safe‑area guides, 300‑DPI PNG export, and print‑ready layout.">
   <style>
     :root{ --ink:#111; --paper:#f7f5f1; --gap:10px; --panel-br:12px; }
     html,body{height:100%}
@@ -15,7 +15,7 @@
     aside{border-right:2px solid #0002;padding:16px 14px;background:linear-gradient(#faf9f7,#f1efea)}
     h1{font-size:22px;margin:0 0 8px}
     .brand{font-weight:900;letter-spacing:1px}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace}
     .btn{display:inline-flex;align-items:center;gap:8px;border:2px solid #000;padding:8px 10px;border-radius:14px;background:#fff;cursor:pointer;font-weight:700;box-shadow:2px 2px 0 #000;transition:transform .05s}
     .btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #000}
     .btn.block{width:100%;justify-content:center;margin:6px 0}
@@ -32,10 +32,11 @@
     .panel{position:relative;border:2px solid #000;background:#fff;border-radius:var(--panel-br);box-shadow:3px 3px 0 #000;overflow:hidden;aspect-ratio:3/4;}
     .panel .hint{position:absolute;inset:8px auto auto 8px;font-size:11px;opacity:.5;background:#fff;padding:2px 6px;border-radius:100px;border:1px dashed #000}
     .panel .content{position:absolute;inset:0;padding:10px;white-space:pre-wrap}
-    .panel img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto}
+    .panel img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto;transition:transform .1s}
     .drop{position:absolute;inset:0;border:2px dashed #0005;border-radius:10px;display:none;place-items:center;background:#00000008}
     .panel.dragover .drop{display:grid}
     .panel.selected{outline:3px solid #000}
+    img.img-selected{outline:2px dashed #000; outline-offset:2px}
 
     .status{font-size:12px;opacity:.75;margin-left:auto}
 
@@ -46,7 +47,9 @@
 
     /* LETTER PRINT SHEET (exact size) */
     #letterWrap{display:flex;justify-content:center}
-    #letterSheet{width:8.5in;height:11in;background:#fff;border:2px solid #000;border-radius:10px;box-shadow:0 0 0 1px #0002 inset;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:0.2in;padding:0.35in;box-sizing:border-box}
+    #letterSheet{position:relative;width:8.5in;height:11in;background:#fff;border:2px solid #000;border-radius:10px;box-shadow:0 0 0 1px #0002 inset;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:0.2in;padding:0.35in;box-sizing:border-box}
+    #safeOverlay{position:absolute;inset:0.25in;border:1.5px dashed #0008;border-radius:6px;pointer-events:none;display:none}
+    #letterSheet.show-safe #safeOverlay{display:block}
     .printPanel{border:2px solid #000;border-radius:10px;overflow:hidden;position:relative}
     .printPanel .content{position:absolute;inset:0;padding:8px}
     .printPanel img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto}
@@ -89,16 +92,32 @@
         <strong>Letter Sheet</strong>
         <div class="row">
           <button class="btn block" id="fillLetterBtn">Fill 8.5×11 sheet from panels</button>
-          <button class="btn block" id="exportLetterBtn">Export Letter PNG</button>
+        </div>
+        <div class="row">
+          <button class="btn" id="exportLetterBtn">Export Letter PNG</button>
+          <button class="btn" id="exportLetter300Btn" title="Exact 300‑DPI (2550×3300)">Export 300‑DPI PNG</button>
           <button class="btn ghost" id="printBtn">Print</button>
         </div>
-        <label class="switch"><input type="checkbox" id="bwToggle"> B/W print mode (grayscale, extra contrast)</label>
+        <label class="switch"><input type="checkbox" id="bwToggle"> B/W print mode (grayscale + contrast)</label><br>
+        <label class="switch"><input type="checkbox" id="safeToggle"> Show safe area (¼‑inch inset)</label>
       </div>
 
       <div class="card">
         <strong>Asset Library (drag or click)</strong>
         <div class="assets" id="assetGrid"></div>
         <div class="row"><button class="btn block" id="randomAssetBtn">Add random B/W object to selected panel</button></div>
+      </div>
+
+      <div class="card">
+        <strong>Selected image</strong>
+        <div class="row">
+          <button class="btn" id="scaleDownBtn">Scale −</button>
+          <button class="btn" id="scaleUpBtn">Scale +</button>
+          <button class="btn" id="rotLeftBtn">Rotate −15°</button>
+          <button class="btn" id="rotRightBtn">Rotate +15°</button>
+          <button class="btn" id="deleteImgBtn">Delete</button>
+        </div>
+        <p class="tiny">Tip: click an image to select. Shortcuts: <kbd>[</kbd>/<kbd>]</kbd> scale, <kbd>R</kbd>/<kbd>Shift+R</kbd> rotate, <kbd>Delete</kbd> remove.</p>
       </div>
 
       <div class="card">
@@ -127,7 +146,9 @@
 
       <h3 style="margin:18px 0 6px">Letter preview</h3>
       <div id="letterWrap">
-        <section id="letterSheet" aria-label="8.5×11 Letter layout (4×2 grid)"></section>
+        <section id="letterSheet" aria-label="8.5×11 Letter layout (4×2 grid)">
+          <div id="safeOverlay" aria-hidden="true"></div>
+        </section>
       </div>
     </main>
   </div>
@@ -171,6 +192,8 @@
   const workspace = $('#workspace');
   const panels = [];
   let selectedPanel = null;
+  let selectedImg = null;
+
   for(let i=1;i<=8;i++){
     const p = document.createElement('div'); p.className='panel'; p.dataset.index=i;
     const hint = document.createElement('div'); hint.className='hint'; hint.textContent='Page '+i;
@@ -187,13 +210,29 @@
 
     p.addEventListener('paste', async (e)=>{ const item = [...e.clipboardData.items].find(i=>i.type.startsWith('image/')); if(item){ e.preventDefault(); const img = await fileToImg(item.getAsFile()); placeImage(p,img); }});
 
-    p.addEventListener('click', ()=>{ panels.forEach(x=>x.classList.remove('selected')); p.classList.add('selected'); selectedPanel=p; });
+    p.addEventListener('click', ()=>{ panels.forEach(x=>x.classList.remove('selected')); p.classList.add('selected'); selectedPanel=p; deselectImg(); });
 
     p.append(hint,content,drop); workspace.appendChild(p); panels.push(p);
   }
 
-  function placeImage(panel,img){ const old=panel.querySelector('img'); if(old) old.remove(); img.draggable=false; panel.querySelector('.content').appendChild(img); }
+  // Click to select images inside panels
+  workspace.addEventListener('click', (e)=>{
+    if(e.target && e.target.tagName === 'IMG'){
+      selectImg(e.target);
+      e.stopPropagation();
+    }
+  });
+
+  function selectImg(img){ if(selectedImg) selectedImg.classList.remove('img-selected'); selectedImg = img; img.classList.add('img-selected'); }
+  function deselectImg(){ if(selectedImg){ selectedImg.classList.remove('img-selected'); selectedImg=null; } }
+
+  function placeImage(panel,img){ const old=panel.querySelector('img'); if(old) old.remove(); img.draggable=false; img.dataset.scale = img.dataset.scale || '1'; img.dataset.rot = img.dataset.rot || '0'; panel.querySelector('.content').appendChild(img); selectImg(img); }
   function fileToImg(file){ return new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>{ const img=new Image(); img.onload=()=>res(img); img.src=fr.result; }; fr.readAsDataURL(file); }); }
+
+  function updateTransform(img){ const s=parseFloat(img.dataset.scale||'1'); const r=parseFloat(img.dataset.rot||'0'); img.style.transform = `rotate(${r}deg) scale(${s})`; }
+  function scaleSelected(mult){ if(!selectedImg) return; const cur=parseFloat(selectedImg.dataset.scale||'1'); selectedImg.dataset.scale = (cur*mult).toFixed(3); updateTransform(selectedImg); }
+  function rotateSelected(deg){ if(!selectedImg) return; const cur=parseFloat(selectedImg.dataset.rot||'0'); selectedImg.dataset.rot = (cur+deg).toFixed(1); updateTransform(selectedImg); }
+  function deleteSelected(){ if(!selectedImg) return; const parent=selectedImg.parentElement; selectedImg.remove(); selectedImg=null; if(parent) parent.focus(); }
 
   // Build asset grid
   const grid = document.getElementById('assetGrid');
@@ -209,22 +248,41 @@
 
   // Letter sheet logic
   const letter = $('#letterSheet');
-  function fillLetter(){ letter.innerHTML=''; for(let i=0;i<8;i++){ const cell=document.createElement('div'); cell.className='printPanel'; const c=document.createElement('div'); c.className='content'; c.innerHTML = panels[i].querySelector('.content').innerHTML; cell.appendChild(c); letter.appendChild(cell); } setStatus('Filled 8.5×11 sheet from panels.'); }
+  function fillLetter(){ letter.innerHTML='<div id="safeOverlay" aria-hidden="true"></div>'; for(let i=0;i<8;i++){ const cell=document.createElement('div'); cell.className='printPanel'; const c=document.createElement('div'); c.className='content'; c.innerHTML = panels[i].querySelector('.content').innerHTML; cell.appendChild(c); letter.appendChild(cell); } setStatus('Filled 8.5×11 sheet from panels.'); }
   $('#fillLetterBtn').addEventListener('click', fillLetter);
 
-  // B/W toggle
+  // Toggles
   $('#bwToggle').addEventListener('change', (e)=>{ letter.classList.toggle('bw', e.target.checked); });
+  $('#safeToggle').addEventListener('change', (e)=>{ letter.classList.toggle('show-safe', e.target.checked); });
 
   // Exports
   $('#exportPngBtn').addEventListener('click', async ()=>{ setStatus('Rendering workspace PNG…'); const canvas = await html2canvas(workspace, {backgroundColor:'#ffffff', scale:2}); const a=document.createElement('a'); a.download='headmosh-workspace.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Workspace PNG exported.'); });
-  $('#exportLetterBtn').addEventListener('click', async ()=>{ if(!letter.children.length) fillLetter(); setStatus('Rendering letter PNG…'); const canvas = await html2canvas(letter, {backgroundColor:'#ffffff', scale:3}); const a=document.createElement('a'); a.download='headmosh-letter-8x11.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Letter PNG exported.'); });
+  $('#exportLetterBtn').addEventListener('click', async ()=>{ if(!letter.children.length) fillLetter(); setStatus('Rendering letter PNG…'); const canvas = await html2canvas(letter, {backgroundColor:'#ffffff', scale:2}); const a=document.createElement('a'); a.download='headmosh-letter-8x11.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Letter PNG exported.'); });
+  $('#exportLetter300Btn').addEventListener('click', async ()=>{ if(!letter.children.length) fillLetter(); setStatus('Rendering 300‑DPI PNG…'); const SCALE_300 = 300/96; // 3.125 → 2550×3300
+    const canvas = await html2canvas(letter, {backgroundColor:'#ffffff', scale:SCALE_300}); const a=document.createElement('a'); a.download='headmosh-letter-300dpi.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('300‑DPI PNG exported.'); });
   $('#printBtn').addEventListener('click', ()=>{ if(!letter.children.length) fillLetter(); window.print(); });
 
   // Project save/load
   $('#saveBtn').addEventListener('click',()=>{ const data = panels.map(p=>({ html:p.querySelector('.content').innerHTML })); const blob=new Blob([JSON.stringify({v:1,p:data},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'headmosh-letter-zine.json'}); a.click(); URL.revokeObjectURL(url); });
   $('#loadFile').addEventListener('change', async (e)=>{ const file=e.target.files[0]; if(!file) return; const text=await file.text(); const data=JSON.parse(text); data.p.forEach((pd,i)=>{ const p=panels[i]; p.querySelector('.content').innerHTML=pd.html; }); setStatus('Project loaded.'); });
 
-  setStatus('Ready. Build in the 8 panels, then Fill 8.5×11 sheet → Export Letter PNG or Print.');
+  // Selected image controls
+  $('#scaleDownBtn').addEventListener('click', ()=>scaleSelected(0.9));
+  $('#scaleUpBtn').addEventListener('click', ()=>scaleSelected(1.1));
+  $('#rotLeftBtn').addEventListener('click', ()=>rotateSelected(-15));
+  $('#rotRightBtn').addEventListener('click', ()=>rotateSelected(15));
+  $('#deleteImgBtn').addEventListener('click', deleteSelected);
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === '['){ e.preventDefault(); scaleSelected(0.9); }
+    if(e.key === ']'){ e.preventDefault(); scaleSelected(1.1); }
+    if(e.key.toLowerCase() === 'r' && e.shiftKey){ e.preventDefault(); rotateSelected(-15); }
+    else if(e.key.toLowerCase() === 'r'){ e.preventDefault(); rotateSelected(15); }
+    if(e.key === 'Delete' || e.key === 'Backspace'){ if(selectedImg){ e.preventDefault(); deleteSelected(); } }
+  });
+
+  setStatus('Ready. Build in the 8 panels, then Fill 8.5×11 sheet → Export 300‑DPI PNG or Print.');
   </script>
 </body>
 </html>
