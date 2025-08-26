@@ -3,17 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Headmosh Zine Lab — permission to create</title>
-  <meta name="description" content="Headmosh Zine Lab: make a one‑sheet 8‑page zine in your browser. Drag images, type text, shuffle layouts, add scribbles, print or export PNG. Includes a black‑and‑white asset library.">
+  <title>Headmosh Zine Lab — Letter Grid (8.5×11)</title>
+  <meta name="description" content="Make an 8‑panel zine on a precise 8.5×11 letter sheet. Locked panel ratio, drag‑and‑drop, copy‑paste images, bold B/W asset library, PNG export, and print‑ready layout.">
   <style>
-    :root{ --ink:#111; --paper:#f7f5f1; --grid-gap:10px; }
+    :root{ --ink:#111; --paper:#f7f5f1; --gap:10px; --panel-br:12px; }
     html,body{height:100%}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--paper)}
     .app{display:grid;grid-template-columns:320px 1fr;min-height:100%}
+
+    /* Sidebar */
     aside{border-right:2px solid #0002;padding:16px 14px;background:linear-gradient(#faf9f7,#f1efea)}
     h1{font-size:22px;margin:0 0 8px}
     .brand{font-weight:900;letter-spacing:1px}
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
     .btn{display:inline-flex;align-items:center;gap:8px;border:2px solid #000;padding:8px 10px;border-radius:14px;background:#fff;cursor:pointer;font-weight:700;box-shadow:2px 2px 0 #000;transition:transform .05s}
     .btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #000}
     .btn.block{width:100%;justify-content:center;margin:6px 0}
@@ -21,14 +23,15 @@
     .row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
     .card{border:2px solid #000;background:#fff;border-radius:16px;padding:12px;box-shadow:3px 3px 0 #000;margin:8px 0}
     .tiny{font-size:12px;opacity:.75}
+    label.switch{display:flex;align-items:center;gap:8px;font-size:13px}
 
+    /* Workspace */
     main{padding:18px}
     .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--grid-gap)}
-    .panel{position:relative;border:2px solid #000;background:#fff;border-radius:12px;min-height:180px;box-shadow:3px 3px 0 #000;overflow:hidden}
-    .panel[contenteditable="true"]:focus{outline:3px dashed #000}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap)}
+    .panel{position:relative;border:2px solid #000;background:#fff;border-radius:var(--panel-br);box-shadow:3px 3px 0 #000;overflow:hidden;aspect-ratio:3/4;}
     .panel .hint{position:absolute;inset:8px auto auto 8px;font-size:11px;opacity:.5;background:#fff;padding:2px 6px;border-radius:100px;border:1px dashed #000}
-    .panel .content{position:absolute;inset:0;padding:12px;white-space:pre-wrap}
+    .panel .content{position:absolute;inset:0;padding:10px;white-space:pre-wrap}
     .panel img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto}
     .drop{position:absolute;inset:0;border:2px dashed #0005;border-radius:10px;display:none;place-items:center;background:#00000008}
     .panel.dragover .drop{display:grid}
@@ -36,57 +39,66 @@
 
     .status{font-size:12px;opacity:.75;margin-left:auto}
 
-    #printSheet{display:none}
-    #printSheet .sheet{background:#fff;border:2px solid #000;margin:0 auto;border-radius:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px;box-sizing:border-box}
-    .printPanel{border:1px solid #000;border-radius:6px;padding:6px;min-height:140px;overflow:hidden}
-
-    .scribble{pointer-events:none;position:absolute;inset:0;mix-blend-mode:multiply}
-
-    body:before{content:"";position:fixed;inset:0;background:
-      radial-gradient(circle at 10% 10%,#0001 0 1px,transparent 1px) 0 0/6px 6px,
-      radial-gradient(circle at 70% 80%,#0001 0 1px,transparent 1px) 0 0/9px 9px;opacity:.2;pointer-events:none}
-
     /* Asset library */
     .assets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:180px;overflow:auto;margin-top:8px}
     .asset{border:2px solid #000;background:#fff;border-radius:10px;box-shadow:2px 2px 0 #000;display:grid;place-items:center;cursor:grab;height:56px}
     .asset img{max-width:80%;max-height:80%}
 
+    /* LETTER PRINT SHEET (exact size) */
+    #letterWrap{display:flex;justify-content:center}
+    #letterSheet{width:8.5in;height:11in;background:#fff;border:2px solid #000;border-radius:10px;box-shadow:0 0 0 1px #0002 inset;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:0.2in;padding:0.35in;box-sizing:border-box}
+    .printPanel{border:2px solid #000;border-radius:10px;overflow:hidden;position:relative}
+    .printPanel .content{position:absolute;inset:0;padding:8px}
+    .printPanel img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto}
+    .bw img{filter:grayscale(100%) contrast(120%)}
+
+    /* Subtle paper grain */
+    body:before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 10% 10%,#0001 0 1px,transparent 1px) 0 0/6px 6px,radial-gradient(circle at 70% 80%,#0001 0 1px,transparent 1px) 0 0/9px 9px;opacity:.18;pointer-events:none}
+
     @media print{
       .app, .toolbar, aside{display:none !important}
       body{background:#fff}
-      #printSheet{display:block}
-      @page{size:letter;margin:.35in}
+      #letterWrap{display:block}
+      @page{size:letter;margin:0}
+      #letterSheet{box-shadow:none;border:0}
     }
   </style>
 </head>
 <body>
   <div class="app">
     <aside>
-      <h1><span class="brand">HEADMOSH</span> <span class="mono">/ Zine Lab</span></h1>
-      <p class="tiny">Make a one‑sheet 8‑page zine in your browser. Drop images, use the asset library, add scribbles, then print or export.</p>
+      <h1><span class="brand">HEADMOSH</span> <span class="mono">/ Letter Zine Lab</span></h1>
+      <p class="tiny">Locked 8‑panel grid designed to print cleanly on <strong>8.5×11</strong>. Drag or paste images, add punk B/W assets, then fill the sheet and print or export PNG.</p>
 
       <div class="card">
         <strong>Actions</strong>
         <div class="row">
           <button class="btn block" id="promptBtn">Random prompt</button>
           <button class="btn block" id="shuffleBtn">Shuffle panels</button>
+        </div>
+        <div class="row">
           <button class="btn block" id="scribbleBtn">Add scribbles</button>
           <button class="btn block" id="clearScribbleBtn">Clear scribbles</button>
         </div>
         <div class="row">
-          <button class="btn" id="exportPngBtn">Export PNG</button>
-          <button class="btn" id="imposeBtn" title="Prepare the single‑sheet print layout">Zine layout → print</button>
-          <button class="btn ghost" id="printBtn">Print</button>
-        </div>
-        <div class="row">
-          <button class="btn block" id="randomAssetBtn">Add random B/W object to selected panel</button>
+          <button class="btn" id="exportPngBtn">Export Workspace PNG</button>
         </div>
       </div>
 
       <div class="card">
-        <strong>Asset Library (drag into a panel)</strong>
+        <strong>Letter Sheet</strong>
+        <div class="row">
+          <button class="btn block" id="fillLetterBtn">Fill 8.5×11 sheet from panels</button>
+          <button class="btn block" id="exportLetterBtn">Export Letter PNG</button>
+          <button class="btn ghost" id="printBtn">Print</button>
+        </div>
+        <label class="switch"><input type="checkbox" id="bwToggle"> B/W print mode (grayscale, extra contrast)</label>
+      </div>
+
+      <div class="card">
+        <strong>Asset Library (drag or click)</strong>
         <div class="assets" id="assetGrid"></div>
-        <p class="tiny">Tip: click a panel to select it, then use <b>Add random</b>.</p>
+        <div class="row"><button class="btn block" id="randomAssetBtn">Add random B/W object to selected panel</button></div>
       </div>
 
       <div class="card">
@@ -99,40 +111,28 @@
       </div>
 
       <div class="card">
-        <strong>How to fold (mini‑zine)</strong>
-        <ol class="tiny">
-          <li>Print both sides of the sheet from the <b>Zine layout</b>.</li>
-          <li>Fold in half twice, then once the other way.</li>
-          <li>Cut the center slit. Refold into an 8‑page booklet.</li>
-        </ol>
-        <p class="tiny">Imposition order used:<br>Front: 8 • 1 • 2 • 7<br>Back: 6 • 3 • 4 • 5</p>
-      </div>
-
-      <div class="card">
         <strong>Tips</strong>
         <ul class="tiny">
-          <li>Drop images directly onto a panel or from the asset library.</li>
-          <li>Click text to edit. <kbd>Ctrl/Cmd+B/I</kbd> often works.</li>
-          <li>Double‑click a panel to toggle a triangle background.</li>
+          <li>Click a panel to select it (outline shows).</li>
+          <li>Paste images with <kbd>Ctrl/Cmd+V</kbd> directly into a panel.</li>
+          <li>Drag assets into panels, or click a tile to insert.</li>
+          <li>Panels are locked to a 3:4 ratio for consistent print composition.</li>
         </ul>
       </div>
     </aside>
 
     <main>
-      <div class="toolbar">
-        <div class="status" id="status">Ready.</div>
-      </div>
-      <section id="workspace" class="grid" aria-label="Zine panels (edit order)"></section>
+      <div class="toolbar"><div class="status" id="status">Ready.</div></div>
+      <section id="workspace" class="grid" aria-label="Editable panels (1–8)"></section>
 
-      <section id="printSheet" aria-label="Print layout (imposition)">
-        <h2 style="text-align:center;margin:0 0 6px">Headmosh Zine — Print Sheet</h2>
-        <div class="sheet" id="sheetFront" aria-label="Front"></div>
-        <div style="height:12px"></div>
-        <div class="sheet" id="sheetBack" aria-label="Back"></div>
-      </section>
+      <h3 style="margin:18px 0 6px">Letter preview</h3>
+      <div id="letterWrap">
+        <section id="letterSheet" aria-label="8.5×11 Letter layout (4×2 grid)"></section>
+      </div>
     </main>
   </div>
 
+  <!-- html2canvas for PNG export -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
   // Prompts
@@ -167,13 +167,12 @@
   const $ = s => document.querySelector(s);
   const setStatus = t => $('#status').textContent = t;
 
+  // Build 8 panels
   const workspace = $('#workspace');
   const panels = [];
   let selectedPanel = null;
   for(let i=1;i<=8;i++){
-    const p = document.createElement('div');
-    p.className = 'panel';
-    p.dataset.index = i;
+    const p = document.createElement('div'); p.className='panel'; p.dataset.index=i;
     const hint = document.createElement('div'); hint.className='hint'; hint.textContent='Page '+i;
     const content = document.createElement('div'); content.className='content'; content.contentEditable=true; content.setAttribute('role','textbox');
     const drop = document.createElement('div'); drop.className='drop'; drop.innerHTML='<div class="mono tiny">Drop image here</div>';
@@ -182,19 +181,11 @@
     ;['dragleave','drop'].forEach(evt=>p.addEventListener(evt,e=>{e.preventDefault();p.classList.remove('dragover')}));
     p.addEventListener('drop', async (e)=>{
       const file = [...e.dataTransfer.files][0];
-      if(file && file.type.startsWith('image/')){
-        const img = await fileToImg(file); placeImage(p,img);
-      }
-      const url = e.dataTransfer.getData('text/uri-list');
-      if(url){ const im=new Image(); im.onload=()=>placeImage(p,im); im.src=url; }
+      if(file && file.type.startsWith('image/')){ const img = await fileToImg(file); placeImage(p,img); }
+      const url = e.dataTransfer.getData('text/uri-list'); if(url){ const im=new Image(); im.onload=()=>placeImage(p,im); im.src=url; }
     });
 
-    p.addEventListener('paste', async (e)=>{
-      const item = [...e.clipboardData.items].find(i=>i.type.startsWith('image/'));
-      if(item){ e.preventDefault(); const img = await fileToImg(item.getAsFile()); placeImage(p,img); }
-    });
-
-    p.addEventListener('dblclick', ()=>{ p.classList.toggle('tri'); if(p.classList.contains('tri')) applyTriangles(p); else clearTriangles(p); });
+    p.addEventListener('paste', async (e)=>{ const item = [...e.clipboardData.items].find(i=>i.type.startsWith('image/')); if(item){ e.preventDefault(); const img = await fileToImg(item.getAsFile()); placeImage(p,img); }});
 
     p.addEventListener('click', ()=>{ panels.forEach(x=>x.classList.remove('selected')); p.classList.add('selected'); selectedPanel=p; });
 
@@ -203,41 +194,37 @@
 
   function placeImage(panel,img){ const old=panel.querySelector('img'); if(old) old.remove(); img.draggable=false; panel.querySelector('.content').appendChild(img); }
   function fileToImg(file){ return new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>{ const img=new Image(); img.onload=()=>res(img); img.src=fr.result; }; fr.readAsDataURL(file); }); }
-  function applyTriangles(panel){ panel.style.background = `repeating-linear-gradient(45deg, #0002 0 8px, transparent 8px 16px), repeating-linear-gradient(-45deg, #0002 0 8px, transparent 8px 16px)`; }
-  function clearTriangles(panel){ panel.style.background = '#fff'; }
 
   // Build asset grid
   const grid = document.getElementById('assetGrid');
-  SVG_ASSETS.forEach(make=>{
-    const url = 'data:image/svg+xml;utf8,' + encodeURIComponent(make());
-    const tile = document.createElement('div'); tile.className='asset';
-    const img = new Image(); img.src=url; img.alt='asset'; tile.appendChild(img);
-    tile.draggable=true;
-    tile.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/uri-list', url); });
-    tile.addEventListener('click',()=>{ const target = selectedPanel || panels[Math.floor(Math.random()*panels.length)]; const im=new Image(); im.onload=()=>placeImage(target,im); im.src=url; });
-    grid.appendChild(tile);
-  });
+  SVG_ASSETS.forEach(make=>{ const url='data:image/svg+xml;utf8,'+encodeURIComponent(make()); const tile=document.createElement('div'); tile.className='asset'; const img=new Image(); img.src=url; img.alt='asset'; tile.appendChild(img); tile.draggable=true; tile.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/uri-list', url); }); tile.addEventListener('click',()=>{ const target=selectedPanel||panels[Math.floor(Math.random()*panels.length)]; const im=new Image(); im.onload=()=>placeImage(target,im); im.src=url; }); grid.appendChild(tile); });
 
   // Buttons
-  $('#promptBtn').addEventListener('click',()=>{ const text = prompts[Math.floor(Math.random()*prompts.length)]; alert('PROMPT: '+text); });
-  $('#shuffleBtn').addEventListener('click',()=>{ const order=[...panels.keys()]; for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [order[i],order[j]]=[order[j],order[i]];} order.forEach(i=>workspace.appendChild(panels[i])); setStatus('Shuffled panel order.'); });
+  $('#promptBtn').addEventListener('click',()=>{ alert('PROMPT: '+prompts[Math.floor(Math.random()*prompts.length)]); });
+  $('#shuffleBtn').addEventListener('click',()=>{ const order=[...panels]; order.sort(()=>Math.random()-0.5); order.forEach(p=>workspace.appendChild(p)); setStatus('Shuffled panel order.'); });
 
   let scribbleLayer; $('#scribbleBtn').addEventListener('click',()=>{ if(scribbleLayer) scribbleLayer.remove(); scribbleLayer=document.createElement('canvas'); scribbleLayer.className='scribble'; document.body.appendChild(scribbleLayer); const ctx=scribbleLayer.getContext('2d'); resizeScribble(); ctx.lineWidth=2; ctx.strokeStyle='#0003'; for(let i=0;i<120;i++){ ctx.beginPath(); ctx.moveTo(Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height); ctx.bezierCurveTo(Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height,Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height,Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height); ctx.stroke(); } setStatus('Added scribbles (overlay).'); });
   $('#clearScribbleBtn').addEventListener('click',()=>{ if(scribbleLayer){ scribbleLayer.remove(); scribbleLayer=null; setStatus('Cleared scribbles.'); } });
-  window.addEventListener('resize',()=>scribbleLayer && resizeScribble());
-  function resizeScribble(){ scribbleLayer.width=window.innerWidth; scribbleLayer.height=window.innerHeight; }
+  window.addEventListener('resize',()=>scribbleLayer && resizeScribble()); function resizeScribble(){ scribbleLayer.width=innerWidth; scribbleLayer.height=innerHeight; }
 
-  $('#exportPngBtn').addEventListener('click', async ()=>{ setStatus('Rendering PNG…'); const canvas = await html2canvas(workspace, {backgroundColor:'#ffffff'}); const link=document.createElement('a'); link.download='headmosh-zine-workspace.png'; link.href=canvas.toDataURL('image/png'); link.click(); setStatus('PNG exported.'); });
+  // Letter sheet logic
+  const letter = $('#letterSheet');
+  function fillLetter(){ letter.innerHTML=''; for(let i=0;i<8;i++){ const cell=document.createElement('div'); cell.className='printPanel'; const c=document.createElement('div'); c.className='content'; c.innerHTML = panels[i].querySelector('.content').innerHTML; cell.appendChild(c); letter.appendChild(cell); } setStatus('Filled 8.5×11 sheet from panels.'); }
+  $('#fillLetterBtn').addEventListener('click', fillLetter);
 
-  $('#imposeBtn').addEventListener('click',()=>{ $('#sheetFront').innerHTML=''; $('#sheetBack').innerHTML=''; const clones = panels.map(p=>{ const c=document.createElement('div'); c.className='printPanel'; c.innerHTML=p.querySelector('.content').innerHTML; return c; }); const frontIdx=[7,0,1,6]; const backIdx=[5,2,3,4]; frontIdx.forEach(i=>$('#sheetFront').appendChild(clones[i])); backIdx.forEach(i=>$('#sheetBack').appendChild(clones[i])); location.hash='#print'; setStatus('Zine layout prepared. Use the Print button.'); });
-  $('#printBtn').addEventListener('click',()=>window.print());
+  // B/W toggle
+  $('#bwToggle').addEventListener('change', (e)=>{ letter.classList.toggle('bw', e.target.checked); });
 
-  $('#saveBtn').addEventListener('click',()=>{ const data = panels.map(p=>({ html:p.querySelector('.content').innerHTML, tri:p.classList.contains('tri') })); const blob=new Blob([JSON.stringify({v:1,p:data},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'headmosh-zine.json'}); a.click(); URL.revokeObjectURL(url); });
-  $('#loadFile').addEventListener('change',async (e)=>{ const file=e.target.files[0]; if(!file) return; const text=await file.text(); const data=JSON.parse(text); data.p.forEach((pd,i)=>{ const p=panels[i]; p.querySelector('.content').innerHTML=pd.html; if(pd.tri){ p.classList.add('tri'); applyTriangles(p);} else { p.classList.remove('tri'); clearTriangles(p);} }); setStatus('Project loaded.'); });
+  // Exports
+  $('#exportPngBtn').addEventListener('click', async ()=>{ setStatus('Rendering workspace PNG…'); const canvas = await html2canvas(workspace, {backgroundColor:'#ffffff', scale:2}); const a=document.createElement('a'); a.download='headmosh-workspace.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Workspace PNG exported.'); });
+  $('#exportLetterBtn').addEventListener('click', async ()=>{ if(!letter.children.length) fillLetter(); setStatus('Rendering letter PNG…'); const canvas = await html2canvas(letter, {backgroundColor:'#ffffff', scale:3}); const a=document.createElement('a'); a.download='headmosh-letter-8x11.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Letter PNG exported.'); });
+  $('#printBtn').addEventListener('click', ()=>{ if(!letter.children.length) fillLetter(); window.print(); });
 
-  $('#randomAssetBtn').addEventListener('click',()=>{ const make = SVG_ASSETS[Math.floor(Math.random()*SVG_ASSETS.length)]; const url='data:image/svg+xml;utf8,'+encodeURIComponent(make()); const target=selectedPanel||panels[Math.floor(Math.random()*panels.length)]; const im=new Image(); im.onload=()=>placeImage(target,im); im.src=url; setStatus('Inserted random B/W object.'); });
+  // Project save/load
+  $('#saveBtn').addEventListener('click',()=>{ const data = panels.map(p=>({ html:p.querySelector('.content').innerHTML })); const blob=new Blob([JSON.stringify({v:1,p:data},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'headmosh-letter-zine.json'}); a.click(); URL.revokeObjectURL(url); });
+  $('#loadFile').addEventListener('change', async (e)=>{ const file=e.target.files[0]; if(!file) return; const text=await file.text(); const data=JSON.parse(text); data.p.forEach((pd,i)=>{ const p=panels[i]; p.querySelector('.content').innerHTML=pd.html; }); setStatus('Project loaded.'); });
 
-  setStatus('Ready. Drop images, use the Asset Library, then “Zine layout → print”.');
+  setStatus('Ready. Build in the 8 panels, then Fill 8.5×11 sheet → Export Letter PNG or Print.');
   </script>
 </body>
 </html>
