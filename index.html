@@ -29,18 +29,14 @@
     main{padding:18px}
     .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap)}
-    .panel{position:relative;border:2px solid #000;background:#fff;border-radius:var(--panel-br);box-shadow:3px 3px 0 #000;overflow:hidden;aspect-ratio:3/4;}
+    .panel{position:relative;border:2px solid #000;background:#fff;border-radius:var(--panel-br);box-shadow:3px 3px 0 #000;overflow:hidden;aspect-ratio:3/4;transform-origin:center center}
     .panel .hint{position:absolute;inset:8px auto auto 8px;font-size:11px;opacity:.5;background:#fff;padding:2px 6px;border-radius:100px;border:1px dashed #000}
     .panel .content{position:absolute;inset:0;padding:10px;white-space:pre-wrap}
     .panel img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto;transition:transform .1s}
     .drop{position:absolute;inset:0;border:2px dashed #0005;border-radius:10px;display:none;place-items:center;background:#00000008}
     .panel.dragover .drop{display:grid}
     .panel.selected{outline:3px solid #000}
-    .panel{transform-origin:center center}
     .panel.flip180{transform:rotate(180deg)}
-    /* Hide guides while exporting */
-    .exporting .panel .hint{display:none}
-    .exporting .panel.selected{outline:none}
     img.img-selected{outline:2px dashed #000; outline-offset:2px}
 
     .status{font-size:12px;opacity:.75;margin-left:auto}
@@ -59,6 +55,10 @@
     .printPanel .content{position:absolute;inset:0;padding:8px}
     .printPanel img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto}
     .bw img{filter:grayscale(100%) contrast(120%)}
+
+    /* Hide guides while exporting */
+    .exporting .panel .hint{display:none}
+    .exporting .panel.selected{outline:none}
 
     /* Subtle paper grain */
     body:before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 10% 10%,#0001 0 1px,transparent 1px) 0 0/6px 6px,radial-gradient(circle at 70% 80%,#0001 0 1px,transparent 1px) 0 0/9px 9px;opacity:.18;pointer-events:none}
@@ -122,7 +122,7 @@
           <button class="btn" id="rotRightBtn">Rotate +15°</button>
           <button class="btn" id="deleteImgBtn">Delete</button>
         </div>
-        <p class="tiny">Tip: click an image to select. Shortcuts: <kbd>[</kbd>/<kbd>]</kbd> scale, <kbd>R</kbd>/<kbd>Shift+R</kbd> rotate, <kbd>Delete</kbd> remove.</p>
+        <p class="tiny">Shortcuts: <kbd>[</kbd>/<kbd>]</kbd> scale, <kbd>R</kbd>/<kbd>Shift+R</kbd> rotate, <kbd>Delete</kbd> remove.</p>
       </div>
 
       <div class="card">
@@ -158,148 +158,148 @@
     </main>
   </div>
 
-  <!-- html2canvas for PNG export -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
-  // Prompts
-  const prompts = [
-    "Draw your day using only triangles.",
-    "Write three lines you’ll gladly throw away.",
-    "Paste a photo and destroy half of it.",
-    "Make a lake wave with only straight lines.",
-    "Turn a mistake into the title.",
-    "Interview an object on your desk in 4 panels.",
-    "Blind contour your hand for 30s—no peeking.",
-    "Cut, paste, repeat one word until it’s music.",
-    "Draw Grimbo’s loud thought vs. Zapette’s calm reply.",
-    "Permission slip: You are allowed to make something ugly."
-  ];
+  window.addEventListener('DOMContentLoaded', () => {
+    const prompts = [
+      "Draw your day using only triangles.",
+      "Write three lines you’ll gladly throw away.",
+      "Paste a photo and destroy half of it.",
+      "Make a lake wave with only straight lines.",
+      "Turn a mistake into the title.",
+      "Interview an object on your desk in 4 panels.",
+      "Blind contour your hand for 30s—no peeking.",
+      "Cut, paste, repeat one word until it’s music.",
+      "Draw Grimbo’s loud thought vs. Zapette’s calm reply.",
+      "Permission slip: You are allowed to make something ugly."
+    ];
 
-  // Black & white SVG asset library
-  const SVG_ASSETS = [
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><path d='M0 120 Q40 60 80 120 T160 120 T240 120' fill='none' stroke='black' stroke-width='18' stroke-linecap='round'/><path d='M110 120 q-10-25 15-45' fill='none' stroke='black' stroke-width='12' stroke-linecap='round'/></svg>`,
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><g stroke='black' stroke-width='16'><circle cx='100' cy='100' r='30' fill='white'/><g><path d='M100 8 V60'/><path d='M100 140 v52'/><path d='M8 100 H60'/><path d='M140 100 h52'/><path d='M30 30 L60 60'/><path d='M170 170 L140 140'/><path d='M30 170 L60 140'/><path d='M170 30 L140 60'/></g></g></svg>`,
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><g fill='black'>${Array.from({length:50},(_,i)=>{const x=(i%10)*20,y=Math.floor(i/10)*20;return (i+x/20+y/20)%2?`<rect x='${x}' y='${y}' width='20' height='20'/>`:''}).join('')}</g></svg>`,
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><g fill='none' stroke='black' stroke-width='18'><circle cx='90' cy='110' r='60'/><circle cx='90' cy='110' r='22'/><path d='M150 110 h40 v40' /></g></svg>`,
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><g fill='none' stroke='black' stroke-width='14' stroke-linecap='round'><circle cx='60' cy='70' r='26'/><circle cx='100' cy='50' r='26'/><path d='M80 110 L180 170'/><path d='M80 110 L180 40'/></g></svg>`,
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><path d='M20 100 H160' stroke='black' stroke-width='20'/><path d='M120 60 L180 100 120 140 Z' fill='black'/></svg>`,
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><path d='M40 120 a60 60 0 1 1 120 0' fill='none' stroke='black' stroke-width='18'/><rect x='30' y='110' width='30' height='60' fill='black'/><rect x='140' y='110' width='30' height='60' fill='black'/></svg>`,
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><path d='M20 40 h140 v80 h-60 l-20 20 v-20 h-60 z' fill='white' stroke='black' stroke-width='16'/></svg>`,
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 140'><rect width='100%' height='100%' fill='white'/><rect x='10' y='40' width='180' height='60' rx='6' fill='white' stroke='black' stroke-width='14'/><circle cx='50' cy='110' r='14' fill='black'/><circle cx='150' cy='110' r='14' fill='black'/><rect x='24' y='52' width='36' height='28' fill='black'/><rect x='66' y='52' width='36' height='28' fill='black'/><rect x='108' y='52' width='36' height='28' fill='black'/></svg>`,
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><g fill='none' stroke='black' stroke-width='14' stroke-linecap='round'><path d='M100 180 V100'/><path d='M100 120 q-40 -30 -70 0'/><path d='M100 140 q40 -30 70 0'/><path d='M100 100 q-30 -40 -50 -20'/><path d='M100 100 q30 -40 50 -20'/></g></svg>`,
-    () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><pattern id='tri' width='20' height='20' patternUnits='userSpaceOnUse'><path d='M0 20 L10 0 L20 20 Z' fill='black'/></pattern></defs><rect width='100%' height='100%' fill='white'/><rect width='100%' height='100%' fill='url(#tri)'/></svg>`
-  ];
+    const SVG_ASSETS = [
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><path d='M0 120 Q40 60 80 120 T160 120 T240 120' fill='none' stroke='black' stroke-width='18' stroke-linecap='round'/><path d='M110 120 q-10-25 15-45' fill='none' stroke='black' stroke-width='12' stroke-linecap='round'/></svg>`,
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><g stroke='black' stroke-width='16'><circle cx='100' cy='100' r='30' fill='white'/><g><path d='M100 8 V60'/><path d='M100 140 v52'/><path d='M8 100 H60'/><path d='M140 100 h52'/><path d='M30 30 L60 60'/><path d='M170 170 L140 140'/><path d='M30 170 L60 140'/><path d='M170 30 L140 60'/></g></g></svg>`,
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><g fill='black'>${Array.from({length:50},(_,i)=>{const x=(i%10)*20,y=Math.floor(i/10)*20;return (i+x/20+y/20)%2?`<rect x='${x}' y='${y}' width='20' height='20'/>`:''}).join('')}</g></svg>`,
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><g fill='none' stroke='black' stroke-width='18'><circle cx='90' cy='110' r='60'/><circle cx='90' cy='110' r='22'/><path d='M150 110 h40 v40' /></g></svg>`,
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><g fill='none' stroke='black' stroke-width='14' stroke-linecap='round'><circle cx='60' cy='70' r='26'/><circle cx='100' cy='50' r='26'/><path d='M80 110 L180 170'/><path d='M80 110 L180 40'/></g></svg>`,
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><path d='M20 100 H160' stroke='black' stroke-width='20'/><path d='M120 60 L180 100 120 140 Z' fill='black'/></svg>`,
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><path d='M40 120 a60 60 0 1 1 120 0' fill='none' stroke='black' stroke-width='18'/><rect x='30' y='110' width='30' height='60' fill='black'/><rect x='140' y='110' width='30' height='60' fill='black'/></svg>`,
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><path d='M20 40 h140 v80 h-60 l-20 20 v-20 h-60 z' fill='white' stroke='black' stroke-width='16'/></svg>`,
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 140'><rect width='100%' height='100%' fill='white'/><rect x='10' y='40' width='180' height='60' rx='6' fill='white' stroke='black' stroke-width='14'/><circle cx='50' cy='110' r='14' fill='black'/><circle cx='150' cy='110' r='14' fill='black'/><rect x='24' y='52' width='36' height='28' fill='black'/><rect x='66' y='52' width='36' height='28' fill='black'/><rect x='108' y='52' width='36' height='28' fill='black'/></svg>`,
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='100%' height='100%' fill='white'/><g fill='none' stroke='black' stroke-width='14' stroke-linecap='round'><path d='M100 180 V100'/><path d='M100 120 q-40 -30 -70 0'/><path d='M100 140 q40 -30 70 0'/><path d='M100 100 q-30 -40 -50 -20'/><path d='M100 100 q30 -40 50 -20'/></g></svg>`,
+      () => `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><pattern id='tri' width='20' height='20' patternUnits='userSpaceOnUse'><path d='M0 20 L10 0 L20 20 Z' fill='black'/></pattern></defs><rect width='100%' height='100%' fill='white'/><rect width='100%' height='100%' fill='url(#tri)'/></svg>`
+    ];
 
-  const $ = s => document.querySelector(s);
-  const setStatus = t => $('#status').textContent = t;
+    const $ = s => document.querySelector(s);
+    const setStatus = t => { const n=$('#status'); if(n) n.textContent=t; };
 
-  // Build 8 panels
-  const workspace = $('#workspace');
-  const panels = [];
-  let selectedPanel = null;
-  let selectedImg = null;
+    // Build 8 panels
+    const workspace = $('#workspace');
+    const panels = [];
+    let selectedPanel = null;
+    let selectedImg = null;
 
-  for(let i=1;i<=8;i++){
-    const p = document.createElement('div'); p.className='panel'; p.dataset.index=i;
-    const hint = document.createElement('div'); hint.className='hint'; hint.textContent='Page '+i;
-    const content = document.createElement('div'); content.className='content'; content.contentEditable=true; content.setAttribute('role','textbox');
-    const drop = document.createElement('div'); drop.className='drop'; drop.innerHTML='<div class="mono tiny">Drop image here</div>';
+    for(let i=1;i<=8;i++){
+      const p = document.createElement('div'); p.className='panel'; p.dataset.index=i;
+      const hint = document.createElement('div'); hint.className='hint'; hint.textContent='Page '+i;
+      const content = document.createElement('div'); content.className='content'; content.contentEditable=true; content.setAttribute('role','textbox');
+      const drop = document.createElement('div'); drop.className='drop'; drop.innerHTML='<div class="mono tiny">Drop image here</div>';
 
-    ['dragenter','dragover'].forEach(evt=>p.addEventListener(evt,e=>{e.preventDefault();p.classList.add('dragover')}));
-    ;['dragleave','drop'].forEach(evt=>p.addEventListener(evt,e=>{e.preventDefault();p.classList.remove('dragover')}));
-    p.addEventListener('drop', async (e)=>{
-      const file = [...e.dataTransfer.files][0];
-      if(file && file.type.startsWith('image/')){ const img = await fileToImg(file); placeImage(p,img); }
-      const url = e.dataTransfer.getData('text/uri-list'); if(url){ const im=new Image(); im.onload=()=>placeImage(p,im); im.src=url; }
+      ['dragenter','dragover'].forEach(evt=>p.addEventListener(evt,e=>{e.preventDefault();p.classList.add('dragover')}));
+      ;['dragleave','drop'].forEach(evt=>p.addEventListener(evt,e=>{e.preventDefault();p.classList.remove('dragover')}));
+      p.addEventListener('drop', async (e)=>{
+        const file = [...e.dataTransfer.files][0];
+        if(file && file.type.startsWith('image/')){ const img = await fileToImg(file); placeImage(p,img); }
+        const url = e.dataTransfer.getData('text/uri-list'); if(url){ const im=new Image(); im.onload=()=>placeImage(p,im); im.src=url; }
+      });
+
+      p.addEventListener('paste', async (e)=>{ const item = [...e.clipboardData.items].find(i=>i.type.startsWith('image/')); if(item){ e.preventDefault(); const img = await fileToImg(item.getAsFile()); placeImage(p,img); }});
+
+      p.addEventListener('click', ()=>{ panels.forEach(x=>x.classList.remove('selected')); p.classList.add('selected'); selectedPanel=p; deselectImg(); });
+
+      p.append(hint,content,drop); workspace.appendChild(p); panels.push(p);
+    }
+
+    // Click to select images inside panels
+    workspace.addEventListener('click', (e)=>{
+      if(e.target && e.target.tagName === 'IMG'){
+        selectImg(e.target);
+        e.stopPropagation();
+      }
     });
 
-    p.addEventListener('paste', async (e)=>{ const item = [...e.clipboardData.items].find(i=>i.type.startsWith('image/')); if(item){ e.preventDefault(); const img = await fileToImg(item.getAsFile()); placeImage(p,img); }});
+    function selectImg(img){ if(selectedImg) selectedImg.classList.remove('img-selected'); selectedImg = img; img.classList.add('img-selected'); }
+    function deselectImg(){ if(selectedImg){ selectedImg.classList.remove('img-selected'); selectedImg=null; } }
 
-    p.addEventListener('click', ()=>{ panels.forEach(x=>x.classList.remove('selected')); p.classList.add('selected'); selectedPanel=p; deselectImg(); });
+    function placeImage(panel,img){ const old=panel.querySelector('img'); if(old) old.remove(); img.draggable=false; img.dataset.scale = img.dataset.scale || '1'; img.dataset.rot = img.dataset.rot || '0'; panel.querySelector('.content').appendChild(img); selectImg(img); }
+    function fileToImg(file){ return new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>{ const img=new Image(); img.onload=()=>res(img); img.src=fr.result; }; fr.readAsDataURL(file); }); }
 
-    p.append(hint,content,drop); workspace.appendChild(p); panels.push(p);
-  }
+    function updateTransform(img){ const s=parseFloat(img.dataset.scale||'1'); const r=parseFloat(img.dataset.rot||'0'); img.style.transform = `rotate(${r}deg) scale(${s})`; }
+    function scaleSelected(mult){ if(!selectedImg) return; const cur=parseFloat(selectedImg.dataset.scale||'1'); selectedImg.dataset.scale = (cur*mult).toFixed(3); updateTransform(selectedImg); }
+    function rotateSelected(deg){ if(!selectedImg) return; const cur=parseFloat(selectedImg.dataset.rot||'0'); selectedImg.dataset.rot = (cur+deg).toFixed(1); updateTransform(selectedImg); }
+    function deleteSelected(){ if(!selectedImg) return; const parent=selectedImg.parentElement; selectedImg.remove(); selectedImg=null; if(parent) parent.focus(); }
 
-  // Click to select images inside panels
-  workspace.addEventListener('click', (e)=>{
-    if(e.target && e.target.tagName === 'IMG'){
-      selectImg(e.target);
-      e.stopPropagation();
-    }
+    // Asset grid
+    const grid = document.getElementById('assetGrid');
+    SVG_ASSETS.forEach(make=>{ const url='data:image/svg+xml;utf8,'+encodeURIComponent(make()); const tile=document.createElement('div'); tile.className='asset'; const img=new Image(); img.src=url; img.alt='asset'; tile.appendChild(img); tile.draggable=true; tile.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/uri-list', url); }); tile.addEventListener('click',()=>{ const target=selectedPanel||panels[Math.floor(Math.random()*panels.length)]; const im=new Image(); im.onload=()=>placeImage(target,im); im.src=url; }); grid.appendChild(tile); });
+
+    // Buttons
+    $('#promptBtn').addEventListener('click',()=>{ alert('PROMPT: '+prompts[Math.floor(Math.random()*prompts.length)]); });
+    $('#shuffleBtn').addEventListener('click',()=>{ const order=[...panels]; order.sort(()=>Math.random()-0.5); order.forEach(p=>workspace.appendChild(p)); setStatus('Shuffled panel order.'); });
+
+    let scribbleLayer; $('#scribbleBtn').addEventListener('click',()=>{ if(scribbleLayer) scribbleLayer.remove(); scribbleLayer=document.createElement('canvas'); scribbleLayer.className='scribble'; document.body.appendChild(scribbleLayer); const ctx=scribbleLayer.getContext('2d'); resizeScribble(); ctx.lineWidth=2; ctx.strokeStyle='#0003'; for(let i=0;i<120;i++){ ctx.beginPath(); ctx.moveTo(Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height); ctx.bezierCurveTo(Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height,Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height,Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height); ctx.stroke(); } setStatus('Added scribbles (overlay).'); });
+    $('#clearScribbleBtn').addEventListener('click',()=>{ if(scribbleLayer){ scribbleLayer.remove(); scribbleLayer=null; setStatus('Cleared scribbles.'); } });
+    window.addEventListener('resize',()=>scribbleLayer && resizeScribble()); function resizeScribble(){ scribbleLayer.width=innerWidth; scribbleLayer.height=innerHeight; }
+
+    // Letter sheet logic
+    const letter = $('#letterSheet');
+    function fillLetter(){ letter.innerHTML='<div id="safeOverlay" aria-hidden="true"></div>'; for(let i=0;i<8;i++){ const cell=document.createElement('div'); cell.className='printPanel'; const c=document.createElement('div'); c.className='content'; c.innerHTML = panels[i].querySelector('.content').innerHTML; cell.appendChild(c); letter.appendChild(cell); } setStatus('Filled 8.5×11 sheet from panels.'); }
+    $('#fillLetterBtn').addEventListener('click', fillLetter);
+
+    // Toggles
+    $('#bwToggle').addEventListener('change', (e)=>{ letter.classList.toggle('bw', e.target.checked); });
+    $('#safeToggle').addEventListener('change', (e)=>{ letter.classList.toggle('show-safe', e.target.checked); });
+
+    // Exports
+    $('#exportLetterBtn').addEventListener('click', async ()=>{ if(!letter.children.length) fillLetter(); setStatus('Rendering letter PNG…'); const canvas = await html2canvas(letter, {backgroundColor:'#ffffff', scale:2}); const a=document.createElement('a'); a.download='headmosh-letter-8x11.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Letter PNG exported.'); });
+    $('#exportLetter300Btn').addEventListener('click', async ()=>{ if(!letter.children.length) fillLetter(); setStatus('Rendering 300‑DPI PNG…'); const SCALE_300 = 300/96; const canvas = await html2canvas(letter, {backgroundColor:'#ffffff', scale:SCALE_300}); const a=document.createElement('a'); a.download='headmosh-letter-300dpi.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('300‑DPI PNG exported.'); });
+    $('#printBtn').addEventListener('click', ()=>{ if(!letter.children.length) fillLetter(); window.print(); });
+
+    // Export workspace with top row flipped 180° (for mini‑zine fold workflows)
+    $('#exportPngBtn').addEventListener('click', async ()=>{
+      setStatus('Rendering workspace PNG (top row flipped)…');
+      const allPanels = [...workspace.querySelectorAll('.panel')];
+      const topRow = allPanels.slice(0,4); // first row given 4 columns
+      topRow.forEach(p=>p.classList.add('flip180'));
+      document.body.classList.add('exporting');
+      await new Promise(r=>requestAnimationFrame(r));
+      const canvas = await html2canvas(workspace, {backgroundColor:'#ffffff', scale:2});
+      topRow.forEach(p=>p.classList.remove('flip180'));
+      document.body.classList.remove('exporting');
+      const a=document.createElement('a'); a.download='headmosh-workspace-toprow-flipped.png'; a.href=canvas.toDataURL('image/png'); a.click();
+      setStatus('Workspace PNG exported (top row flipped).');
+    });
+
+    // Project save/load
+    $('#saveBtn').addEventListener('click',()=>{ const data = panels.map(p=>({ html:p.querySelector('.content').innerHTML })); const blob=new Blob([JSON.stringify({v:1,p:data},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'headmosh-letter-zine.json'}); a.click(); URL.revokeObjectURL(url); });
+    $('#loadFile').addEventListener('change', async (e)=>{ const file=e.target.files[0]; if(!file) return; const text=await file.text(); const data=JSON.parse(text); data.p.forEach((pd,i)=>{ const p=panels[i]; p.querySelector('.content').innerHTML=pd.html; }); setStatus('Project loaded.'); });
+
+    // Selected image controls
+    $('#scaleDownBtn').addEventListener('click', ()=>scaleSelected(0.9));
+    $('#scaleUpBtn').addEventListener('click', ()=>scaleSelected(1.1));
+    $('#rotLeftBtn').addEventListener('click', ()=>rotateSelected(-15));
+    $('#rotRightBtn').addEventListener('click', ()=>rotateSelected(15));
+    $('#deleteImgBtn').addEventListener('click', deleteSelected);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === '['){ e.preventDefault(); scaleSelected(0.9); }
+      if(e.key === ']'){ e.preventDefault(); scaleSelected(1.1); }
+      if(e.key.toLowerCase() === 'r' && e.shiftKey){ e.preventDefault(); rotateSelected(-15); }
+      else if(e.key.toLowerCase() === 'r'){ e.preventDefault(); rotateSelected(15); }
+      if(e.key === 'Delete' || e.key === 'Backspace'){ if(selectedImg){ e.preventDefault(); deleteSelected(); } }
+    });
+
+    setStatus('Ready. Build the 8 panels, then Fill 8.5×11 sheet → Export 300‑DPI PNG or Print.');
   });
-
-  function selectImg(img){ if(selectedImg) selectedImg.classList.remove('img-selected'); selectedImg = img; img.classList.add('img-selected'); }
-  function deselectImg(){ if(selectedImg){ selectedImg.classList.remove('img-selected'); selectedImg=null; } }
-
-  function placeImage(panel,img){ const old=panel.querySelector('img'); if(old) old.remove(); img.draggable=false; img.dataset.scale = img.dataset.scale || '1'; img.dataset.rot = img.dataset.rot || '0'; panel.querySelector('.content').appendChild(img); selectImg(img); }
-  function fileToImg(file){ return new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>{ const img=new Image(); img.onload=()=>res(img); img.src=fr.result; }; fr.readAsDataURL(file); }); }
-
-  function updateTransform(img){ const s=parseFloat(img.dataset.scale||'1'); const r=parseFloat(img.dataset.rot||'0'); img.style.transform = `rotate(${r}deg) scale(${s})`; }
-  function scaleSelected(mult){ if(!selectedImg) return; const cur=parseFloat(selectedImg.dataset.scale||'1'); selectedImg.dataset.scale = (cur*mult).toFixed(3); updateTransform(selectedImg); }
-  function rotateSelected(deg){ if(!selectedImg) return; const cur=parseFloat(selectedImg.dataset.rot||'0'); selectedImg.dataset.rot = (cur+deg).toFixed(1); updateTransform(selectedImg); }
-  function deleteSelected(){ if(!selectedImg) return; const parent=selectedImg.parentElement; selectedImg.remove(); selectedImg=null; if(parent) parent.focus(); }
-
-  // Build asset grid
-  const grid = document.getElementById('assetGrid');
-  SVG_ASSETS.forEach(make=>{ const url='data:image/svg+xml;utf8,'+encodeURIComponent(make()); const tile=document.createElement('div'); tile.className='asset'; const img=new Image(); img.src=url; img.alt='asset'; tile.appendChild(img); tile.draggable=true; tile.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/uri-list', url); }); tile.addEventListener('click',()=>{ const target=selectedPanel||panels[Math.floor(Math.random()*panels.length)]; const im=new Image(); im.onload=()=>placeImage(target,im); im.src=url; }); grid.appendChild(tile); });
-
-  // Buttons
-  $('#promptBtn').addEventListener('click',()=>{ alert('PROMPT: '+prompts[Math.floor(Math.random()*prompts.length)]); });
-  $('#shuffleBtn').addEventListener('click',()=>{ const order=[...panels]; order.sort(()=>Math.random()-0.5); order.forEach(p=>workspace.appendChild(p)); setStatus('Shuffled panel order.'); });
-
-  let scribbleLayer; $('#scribbleBtn').addEventListener('click',()=>{ if(scribbleLayer) scribbleLayer.remove(); scribbleLayer=document.createElement('canvas'); scribbleLayer.className='scribble'; document.body.appendChild(scribbleLayer); const ctx=scribbleLayer.getContext('2d'); resizeScribble(); ctx.lineWidth=2; ctx.strokeStyle='#0003'; for(let i=0;i<120;i++){ ctx.beginPath(); ctx.moveTo(Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height); ctx.bezierCurveTo(Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height,Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height,Math.random()*scribbleLayer.width,Math.random()*scribbleLayer.height); ctx.stroke(); } setStatus('Added scribbles (overlay).'); });
-  $('#clearScribbleBtn').addEventListener('click',()=>{ if(scribbleLayer){ scribbleLayer.remove(); scribbleLayer=null; setStatus('Cleared scribbles.'); } });
-  window.addEventListener('resize',()=>scribbleLayer && resizeScribble()); function resizeScribble(){ scribbleLayer.width=innerWidth; scribbleLayer.height=innerHeight; }
-
-  // Letter sheet logic
-  const letter = $('#letterSheet');
-  function fillLetter(){ letter.innerHTML='<div id="safeOverlay" aria-hidden="true"></div>'; for(let i=0;i<8;i++){ const cell=document.createElement('div'); cell.className='printPanel'; const c=document.createElement('div'); c.className='content'; c.innerHTML = panels[i].querySelector('.content').innerHTML; cell.appendChild(c); letter.appendChild(cell); } setStatus('Filled 8.5×11 sheet from panels.'); }
-  $('#fillLetterBtn').addEventListener('click', fillLetter);
-
-  // Toggles
-  $('#bwToggle').addEventListener('change', (e)=>{ letter.classList.toggle('bw', e.target.checked); });
-  $('#safeToggle').addEventListener('change', (e)=>{ letter.classList.toggle('show-safe', e.target.checked); });
-
-  // Exports
-  $('#exportPngBtn').addEventListener('click', async ()=>{
-    setStatus('Rendering workspace PNG (top row flipped)…');
-    const allPanels = [...workspace.querySelectorAll('.panel')];
-    const topRow = allPanels.slice(0,4);
-    topRow.forEach(p=>p.classList.add('flip180'));
-    workspace.classList.add('exporting');
-    await new Promise(r=>requestAnimationFrame(r));
-    const canvas = await html2canvas(workspace, {backgroundColor:'#ffffff', scale:2});
-    topRow.forEach(p=>p.classList.remove('flip180'));
-    workspace.classList.remove('exporting');
-    const a=document.createElement('a'); a.download='headmosh-workspace-toprow-flipped.png'; a.href=canvas.toDataURL('image/png'); a.click();
-    setStatus('Workspace PNG exported (top row flipped).');
-  }); const a=document.createElement('a'); a.download='headmosh-workspace.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Workspace PNG exported.'); });
-  $('#exportLetterBtn').addEventListener('click', async ()=>{ if(!letter.children.length) fillLetter(); setStatus('Rendering letter PNG…'); const canvas = await html2canvas(letter, {backgroundColor:'#ffffff', scale:2}); const a=document.createElement('a'); a.download='headmosh-letter-8x11.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('Letter PNG exported.'); });
-  $('#exportLetter300Btn').addEventListener('click', async ()=>{ if(!letter.children.length) fillLetter(); setStatus('Rendering 300‑DPI PNG…'); const SCALE_300 = 300/96; // 3.125 → 2550×3300
-    const canvas = await html2canvas(letter, {backgroundColor:'#ffffff', scale:SCALE_300}); const a=document.createElement('a'); a.download='headmosh-letter-300dpi.png'; a.href=canvas.toDataURL('image/png'); a.click(); setStatus('300‑DPI PNG exported.'); });
-  $('#printBtn').addEventListener('click', ()=>{ if(!letter.children.length) fillLetter(); window.print(); });
-
-  // Project save/load
-  $('#saveBtn').addEventListener('click',()=>{ const data = panels.map(p=>({ html:p.querySelector('.content').innerHTML })); const blob=new Blob([JSON.stringify({v:1,p:data},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'headmosh-letter-zine.json'}); a.click(); URL.revokeObjectURL(url); });
-  $('#loadFile').addEventListener('change', async (e)=>{ const file=e.target.files[0]; if(!file) return; const text=await file.text(); const data=JSON.parse(text); data.p.forEach((pd,i)=>{ const p=panels[i]; p.querySelector('.content').innerHTML=pd.html; }); setStatus('Project loaded.'); });
-
-  // Selected image controls
-  $('#scaleDownBtn').addEventListener('click', ()=>scaleSelected(0.9));
-  $('#scaleUpBtn').addEventListener('click', ()=>scaleSelected(1.1));
-  $('#rotLeftBtn').addEventListener('click', ()=>rotateSelected(-15));
-  $('#rotRightBtn').addEventListener('click', ()=>rotateSelected(15));
-  $('#deleteImgBtn').addEventListener('click', deleteSelected);
-
-  // Keyboard shortcuts
-  document.addEventListener('keydown', (e)=>{
-    if(e.key === '['){ e.preventDefault(); scaleSelected(0.9); }
-    if(e.key === ']'){ e.preventDefault(); scaleSelected(1.1); }
-    if(e.key.toLowerCase() === 'r' && e.shiftKey){ e.preventDefault(); rotateSelected(-15); }
-    else if(e.key.toLowerCase() === 'r'){ e.preventDefault(); rotateSelected(15); }
-    if(e.key === 'Delete' || e.key === 'Backspace'){ if(selectedImg){ e.preventDefault(); deleteSelected(); } }
-  });
-
-  setStatus('Ready. Build in the 8 panels, then Fill 8.5×11 sheet → Export 300‑DPI PNG or Print.');
   </script>
 </body>
 </html>
