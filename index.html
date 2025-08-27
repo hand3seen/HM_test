@@ -143,6 +143,11 @@
     const setStatus = t => { const n=$('#status'); if(n) n.textContent=t; };
 
     // Build 8 panels
+    // Ensure gif.js worker path is set
+    if(window.GIF && !GIF.workerSrc){
+      GIF.workerSrc = 'https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.worker.js';
+    }
+
     const workspace = $('#workspace');
     const panels = [];
     let selectedPanel = null;
@@ -242,6 +247,51 @@
           alert('GIF library did not load. Check your connection and refresh.');
           return;
         }
+        if(location.protocol === 'file:'){
+          const cont = confirm('Heads‑up: Some browsers block Web Workers on file:// pages. For reliable GIF export, open via http(s) (GitHub Pages or a local server). Continue anyway?');
+          if(!cont) return;
+        }
+        // Warn about external images (can taint canvas)
+        const externals = [...document.querySelectorAll('#workspace img')].filter(img => !img.src.startsWith('data:') && !img.src.startsWith('blob:'));
+        if(externals.length){
+          const cont = confirm('Some images are external (not pasted). GIF export may fail due to browser security. Paste images instead for best results. Continue anyway?');
+          if(!cont) return;
+        }
+
+        const delay = Math.max(10, parseInt((document.getElementById('gifDelay').value||'200'),10));
+        const scale = Math.min(4, Math.max(1, parseFloat((document.getElementById('gifScale').value||'2'))));
+        const repeatMode = document.getElementById('gifRepeat').value;
+        const repeat = repeatMode==='infinite' ? 0 : (repeatMode==='once' ? -1 : 1);
+
+        setStatus('Building GIF…');
+        document.body.classList.add('exporting');
+        await new Promise(r=>requestAnimationFrame(r));
+
+        const gif = new GIF({ workers: 2, quality: 10, repeat });
+
+        for(const p of panels){
+          const canvas = await html2canvas(p, {backgroundColor:'#ffffff', scale, useCORS:true, allowTaint:true, imageTimeout:0});
+          gif.addFrame(canvas, {delay});
+        }
+
+        gif.on('progress', p=> setStatus(`Building GIF… ${Math.round(p*100)}%`));
+        gif.on('finished', blob=>{
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = 'headmosh-zine-flip.gif'; a.click();
+          URL.revokeObjectURL(url);
+          document.body.classList.remove('exporting');
+          setStatus('GIF exported.');
+        });
+        gif.render();
+      }catch(err){
+        console.error(err);
+        document.body.classList.remove('exporting');
+        alert('GIF export failed. If you used web images, paste them in instead, or host the page over http(s).');
+        setStatus('GIF export failed.');
+      }
+    });
+          return;
+        }
         const delay = Math.max(10, parseInt(delayInput.value||'200',10)); // ms per panel
         const scale = Math.min(4, Math.max(1, parseFloat(scaleInput.value||'2')));
         const repeatMode = repeatSelect.value; // 'infinite' | 'once' | 'twice'
@@ -287,4 +337,3 @@
   </script>
 </body>
 </html>
-
