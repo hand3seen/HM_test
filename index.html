@@ -95,25 +95,6 @@
           <li>Use image controls or shortcuts for quick tweaks.</li>
         </ul>
       </div>
-          <div class="card">
-        <strong>GIF Output</strong>
-        <div class="row">
-          <label class="tiny">Delay per panel (ms): <input id="gifDelay" type="number" value="200" min="50" step="10" style="width:90px"></label>
-        </div>
-        <div class="row">
-          <label class="tiny">Scale: <input id="gifScale" type="number" value="2" min="1" max="4" step="1" style="width:70px"></label>
-          <label class="tiny">Repeat: <select id="gifRepeat" style="height:32px">
-            <option value="infinite" selected>Infinite</option>
-            <option value="once">Play once</option>
-            <option value="twice">Twice</option>
-          </select></label>
-        </div>
-        <div class="row">
-          <button class="btn block" id="exportGifBtn">Export GIF (flip‑through)</button>
-        </div>
-        <p class="tiny">Default speed ≈ <b>0.2s per panel</b> (5 fps). Adjust delay if you want slower/faster.</p>
-      </div>
-
     </aside>
 
     <main>
@@ -123,7 +104,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
   <script>
   window.addEventListener('DOMContentLoaded', () => {
     const prompts = [
@@ -143,11 +123,6 @@
     const setStatus = t => { const n=$('#status'); if(n) n.textContent=t; };
 
     // Build 8 panels
-    // Ensure gif.js worker path is set
-    if(window.GIF && !GIF.workerSrc){
-      GIF.workerSrc = 'https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.worker.js';
-    }
-
     const workspace = $('#workspace');
     const panels = [];
     let selectedPanel = null;
@@ -224,115 +199,14 @@
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e)=>{
-      // If user is typing in an editable area or input, do NOT hijack keys
-      const ae = document.activeElement;
-      const editing = ae && (ae.isContentEditable || ['INPUT','TEXTAREA'].includes(ae.tagName));
-      if(editing) return;
-
-      const hasImg = !!selectedImg;
-      const key = e.key;
-      if(key === '[' && hasImg){ e.preventDefault(); scaleSelected(0.9); return; }
-      if(key === ']' && hasImg){ e.preventDefault(); scaleSelected(1.1); return; }
-      if(key.toLowerCase() === 'r' && hasImg){ e.preventDefault(); rotateSelected(e.shiftKey ? -15 : 15); return; }
-      if((key === 'Delete' || key === 'Backspace') && hasImg){ e.preventDefault(); deleteSelected(); return; }
+      if(e.key === '['){ e.preventDefault(); scaleSelected(0.9); }
+      if(e.key === ']'){ e.preventDefault(); scaleSelected(1.1); }
+      if(e.key.toLowerCase() === 'r' && e.shiftKey){ e.preventDefault(); rotateSelected(-15); }
+      else if(e.key.toLowerCase() === 'r'){ e.preventDefault(); rotateSelected(15); }
+      if(e.key === 'Delete' || e.key === 'Backspace'){ if(selectedImg){ e.preventDefault(); deleteSelected(); } }
     });
 
-    // GIF export (flip-through per panel)
-    const repeatSelect = document.getElementById('gifRepeat');
-    const delayInput = document.getElementById('gifDelay');
-    const scaleInput = document.getElementById('gifScale');
-    document.getElementById('exportGifBtn').addEventListener('click', async ()=>{
-      try{
-        if(typeof GIF === 'undefined'){
-          alert('GIF library did not load. Check your connection and refresh.');
-          return;
-        }
-        if(location.protocol === 'file:'){
-          const cont = confirm('Heads‑up: Some browsers block Web Workers on file:// pages. For reliable GIF export, open via http(s) (GitHub Pages or a local server). Continue anyway?');
-          if(!cont) return;
-        }
-        // Warn about external images (can taint canvas)
-        const externals = [...document.querySelectorAll('#workspace img')].filter(img => !img.src.startsWith('data:') && !img.src.startsWith('blob:'));
-        if(externals.length){
-          const cont = confirm('Some images are external (not pasted). GIF export may fail due to browser security. Paste images instead for best results. Continue anyway?');
-          if(!cont) return;
-        }
-
-        const delay = Math.max(10, parseInt((document.getElementById('gifDelay').value||'200'),10));
-        const scale = Math.min(4, Math.max(1, parseFloat((document.getElementById('gifScale').value||'2'))));
-        const repeatMode = document.getElementById('gifRepeat').value;
-        const repeat = repeatMode==='infinite' ? 0 : (repeatMode==='once' ? -1 : 1);
-
-        setStatus('Building GIF…');
-        document.body.classList.add('exporting');
-        await new Promise(r=>requestAnimationFrame(r));
-
-        const gif = new GIF({ workers: 2, quality: 10, repeat });
-
-        for(const p of panels){
-          const canvas = await html2canvas(p, {backgroundColor:'#ffffff', scale, useCORS:true, allowTaint:true, imageTimeout:0});
-          gif.addFrame(canvas, {delay});
-        }
-
-        gif.on('progress', p=> setStatus(`Building GIF… ${Math.round(p*100)}%`));
-        gif.on('finished', blob=>{
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href = url; a.download = 'headmosh-zine-flip.gif'; a.click();
-          URL.revokeObjectURL(url);
-          document.body.classList.remove('exporting');
-          setStatus('GIF exported.');
-        });
-        gif.render();
-      }catch(err){
-        console.error(err);
-        document.body.classList.remove('exporting');
-        alert('GIF export failed. If you used web images, paste them in instead, or host the page over http(s).');
-        setStatus('GIF export failed.');
-      }
-    });
-          return;
-        }
-        const delay = Math.max(10, parseInt(delayInput.value||'200',10)); // ms per panel
-        const scale = Math.min(4, Math.max(1, parseFloat(scaleInput.value||'2')));
-        const repeatMode = repeatSelect.value; // 'infinite' | 'once' | 'twice'
-        const repeat = repeatMode==='infinite' ? 0 : (repeatMode==='once' ? -1 : 1); // gif.js: 0=infinite, -1=no repeat, n=repeat n times
-
-        setStatus('Building GIF… (this can take a moment)');
-        document.body.classList.add('exporting');
-        await new Promise(r=>requestAnimationFrame(r));
-
-        const gif = new GIF({
-          workers: 2,
-          quality: 10,
-          workerScript: 'https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.worker.js',
-          repeat
-        });
-
-        // Add one frame per panel in current order
-        for(const p of panels){
-          const canvas = await html2canvas(p, {backgroundColor:'#ffffff', scale});
-          gif.addFrame(canvas, {delay});
-        }
-
-        gif.on('progress', p=> setStatus(`Building GIF… ${Math.round(p*100)}%`));
-        gif.on('finished', blob=>{
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = 'headmosh-zine-flip.gif'; a.click();
-          URL.revokeObjectURL(url);
-          document.body.classList.remove('exporting');
-          setStatus('GIF exported.');
-        });
-        gif.render();
-      }catch(err){
-        console.error(err);
-        document.body.classList.remove('exporting');
-        alert('Something went wrong exporting the GIF. Check the console and try lowering scale.');
-        setStatus('GIF export failed.');
-      }
-    });
-
-    setStatus('Ready. Build your 8 panels, then Export Workspace PNG (top row flipped) or Export GIF.');
+    setStatus('Ready. Build your 8 panels, then Export Workspace PNG (top row flipped).');
   });
   </script>
 </body>
