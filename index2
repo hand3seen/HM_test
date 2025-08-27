@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Headmosh Zine Lab — Minimal 8-Panel</title>
+  <meta name="description" content="8-panel zine editor with locked 3:4 panels, paste/drag images, simple image controls, JSON save/load, and workspace PNG export with top row flipped for mini-zine printing.">
+  <style>
+    :root{ --ink:#111; --paper:#f7f5f1; --gap:10px; --panel-br:12px; }
+    html,body{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--paper)}
+    .app{display:grid;grid-template-columns:320px 1fr;min-height:100%}
+
+    /* Sidebar */
+    aside{border-right:2px solid #0002;padding:16px 14px;background:linear-gradient(#faf9f7,#f1efea)}
+    h1{font-size:22px;margin:0 0 8px}
+    .brand{font-weight:900;letter-spacing:1px}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace}
+    .btn{display:inline-flex;align-items:center;gap:8px;border:2px solid #000;padding:8px 10px;border-radius:14px;background:#fff;cursor:pointer;font-weight:700;box-shadow:2px 2px 0 #000;transition:transform .05s}
+    .btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #000}
+    .btn.block{width:100%;justify-content:center;margin:6px 0}
+    .btn.ghost{background:transparent}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+    .card{border:2px solid #000;background:#fff;border-radius:16px;padding:12px;box-shadow:3px 3px 0 #000;margin:8px 0}
+    .tiny{font-size:12px;opacity:.75}
+
+    /* Workspace */
+    main{padding:18px}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap)}
+    .panel{position:relative;border:1px solid #999;background:#fff;border-radius:var(--panel-br);box-shadow:1px 1px 0 #bbb;overflow:hidden;aspect-ratio:3/4;transform-origin:center center}
+    .panel .hint{position:absolute;inset:8px auto auto 8px;font-size:11px;opacity:.5;background:#fff;padding:2px 6px;border-radius:100px;border:1px dashed #000}
+    .panel .content{position:absolute;inset:0;padding:10px;white-space:pre-wrap}
+    .panel img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto;transition:transform .1s}
+    .drop{position:absolute;inset:0;border:2px dashed #0005;border-radius:10px;display:none;place-items:center;background:#00000008}
+    .panel.dragover .drop{display:grid}
+    .panel.selected{outline:3px solid #000}
+    .panel.flip180{transform:rotate(180deg)}
+    img.img-selected{outline:2px dashed #000; outline-offset:2px}
+
+    .status{font-size:12px;opacity:.75;margin-left:auto}
+
+    /* Clean export state */
+    .exporting .panel .hint{display:none}
+    .exporting .panel.selected{outline:none}
+
+    /* Hidden export sheet (letter/tabloid) */
+    #sheetWrap{position:fixed; left:-9999px; top:0;} /* offscreen but layout-able */
+    #exportSheet{
+      width:8.5in; height:11in; background:#fff;
+      display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(2,1fr);
+      gap:0.25in; padding:0.5in; box-sizing:border-box;
+      border:1px solid #ddd; border-radius:8px;
+    }
+    #exportSheet[data-size="tabloid"]{
+      width:11in; height:17in;
+      gap:0.35in; padding:0.6in;
+    }
+    #exportSheet .printPanel{border:1px solid #999;border-radius:10px;overflow:hidden;position:relative;background:#fff}
+    #exportSheet .content{position:absolute;inset:0;padding:8px}
+    #exportSheet img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto}
+
+    /* Subtle paper grain */
+    body:before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 10% 10%,#0001 0 1px,transparent 1px) 0 0/6px 6px,radial-gradient(circle at 70% 80%,#0001 0 1px,transparent 1px) 0 0/9px 9px;opacity:.18;pointer-events:none}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <h1><span class="brand">HEADMOSH</span> <span class="mono">/ Minimal Zine Lab</span></h1>
+      <p class="tiny">8 locked panels (3:4). Paste or drag images. Simple image controls. Export workspace PNG with top row flipped for mini-zine workflows.</p>
+
+      <div class="card">
+        <strong>Actions</strong>
+        <div class="row">
+          <button class="btn block" id="promptBtn">Random prompt</button>
+          <button class="btn block" id="shuffleBtn">Shuffle panels</button>
+        </div>
+        <div class="row">
+          <button class="btn block" id="exportPngBtn">Export Workspace PNG (top row flipped)</button>
+        </div>
+        <div class="row">
+          <label class="tiny"><input type="checkbox" id="tabloidToggle"> 11×17 Tabloid mode</label>
+          <button class="btn" id="exportSheetBtn" title="Exports a clean sheet at 300 DPI">Export Sheet PNG</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>Selected image</strong>
+        <div class="row">
+          <button class="btn" id="scaleDownBtn">Scale −</button>
+          <button class="btn" id="scaleUpBtn">Scale +</button>
+          <button class="btn" id="rotLeftBtn">Rotate −15°</button>
+          <button class="btn" id="rotRightBtn">Rotate +15°</button>
+          <button class="btn" id="deleteImgBtn">Delete</button>
+        </div>
+        <p class="tiny">Shortcuts: <kbd>[</kbd>/<kbd>]</kbd> scale, <kbd>R</kbd>/<kbd>Shift+R</kbd> rotate, <kbd>Delete</kbd> remove.</p>
+      </div>
+
+      <div class="card">
+        <strong>Project</strong>
+        <div class="row">
+          <button class="btn" id="saveBtn">Export JSON</button>
+          <label class="btn" for="loadFile">Import JSON</label>
+          <input id="loadFile" type="file" accept="application/json" style="display:none"/>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>Tips</strong>
+        <ul class="tiny">
+          <li>Click a panel to select it (outline shows).</li>
+          <li>Paste images with <kbd>Ctrl/Cmd+V</kbd> directly into a panel.</li>
+          <li>Drag image files from your desktop into a panel.</li>
+          <li>Use image controls or shortcuts for quick tweaks.</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main>
+      <div class="toolbar"><div class="status" id="status">Ready.</div></div>
+      <section id="workspace" class="grid" aria-label="Editable panels (1–8)"></section>
+
+      <!-- Hidden offscreen export sheet (letter/tabloid) -->
+      <div id="sheetWrap">
+        <section id="exportSheet" data-size="letter" aria-hidden="true"></section>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const prompts = [
+      "Draw your day using only triangles.",
+      "Write three lines you’ll gladly throw away.",
+      "Paste a photo and destroy half of it.",
+      "Make a lake wave with only straight lines.",
+      "Turn a mistake into the title.",
+      "Interview an object on your desk in 4 panels.",
+      "Blind contour your hand for 30s—no peeking.",
+      "Cut, paste, repeat one word until it’s music.",
+      "Draw Grimbo’s loud thought vs. Zapette’s calm reply.",
+      "Permission slip: You are allowed to make something ugly."
+    ];
+
+    const $ = s => document.querySelector(s);
+    const setStatus = t => { const n=$('#status'); if(n) n.textContent=t; };
+
+    // Build 8 panels
+    const workspace = $('#workspace');
+    const panels = [];
+    let selectedPanel = null;
+    let selectedImg = null;
+
+    for(let i=1;i<=8;i++){
+      const p = document.createElement('div'); p.className='panel'; p.dataset.index=i;
+      const hint = document.createElement('div'); hint.className='hint'; hint.textContent='Page '+i;
+      const content = document.createElement('div'); content.className='content'; content.contentEditable=true; content.setAttribute('role','textbox');
+      const drop = document.createElement('div'); drop.className='drop'; drop.innerHTML='<div class="mono tiny">Drop image here</div>';
+
+      ['dragenter','dragover'].forEach(evt=>p.addEventListener(evt,e=>{e.preventDefault();p.classList.add('dragover')}));
+      ;['dragleave','drop'].forEach(evt=>p.addEventListener(evt,e=>{e.preventDefault();p.classList.remove('dragover')}));
+      p.addEventListener('drop', async (e)=>{
+        const file = [...e.dataTransfer.files][0];
+        if(file && file.type.startsWith('image/')){ const img = await fileToImg(file); placeImage(p,img); }
+      });
+
+      p.addEventListener('paste', async (e)=>{ const item = [...e.clipboardData.items].find(i=>i.type.startsWith('image/')); if(item){ e.preventDefault(); const img = await fileToImg(item.getAsFile()); placeImage(p,img); }});
+
+      p.addEventListener('click', ()=>{ panels.forEach(x=>x.classList.remove('selected')); p.classList.add('selected'); selectedPanel=p; deselectImg(); });
+
+      p.append(hint,content,drop); workspace.appendChild(p); panels.push(p);
+    }
+
+    // Click to select images inside panels
+    workspace.addEventListener('click', (e)=>{
+      if(e.target && e.target.tagName === 'IMG'){
+        selectImg(e.target);
+        e.stopPropagation();
+      }
+    });
+
+    function selectImg(img){ if(selectedImg) selectedImg.classList.remove('img-selected'); selectedImg = img; img.classList.add('img-selected'); }
+    function deselectImg(){ if(selectedImg){ selectedImg.classList.remove('img-selected'); selectedImg=null; } }
+
+    function placeImage(panel,img){ const old=panel.querySelector('img'); if(old) old.remove(); img.draggable=false; img.dataset.scale = img.dataset.scale || '1'; img.dataset.rot = img.dataset.rot || '0'; panel.querySelector('.content').appendChild(img); selectImg(img); }
+    function fileToImg(file){ return new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>{ const img=new Image(); img.onload=()=>res(img); img.src=fr.result; }; fr.readAsDataURL(file); }); }
+
+    function updateTransform(img){ const s=parseFloat(img.dataset.scale||'1'); const r=parseFloat(img.dataset.rot||'0'); img.style.transform = `rotate(${r}deg) scale(${s})`; }
+    function scaleSelected(mult){ if(!selectedImg) return; const cur=parseFloat(selectedImg.dataset.scale||'1'); selectedImg.dataset.scale = (cur*mult).toFixed(3); updateTransform(selectedImg); }
+    function rotateSelected(deg){ if(!selectedImg) return; const cur=parseFloat(selectedImg.dataset.rot||'0'); selectedImg.dataset.rot = (cur+deg).toFixed(1); updateTransform(selectedImg); }
+    function deleteSelected(){ if(!selectedImg) return; const parent=selectedImg.parentElement; selectedImg.remove(); selectedImg=null; if(parent) parent.focus(); }
+
+    // Buttons
+    $('#promptBtn').addEventListener('click',()=>{ alert('PROMPT: '+prompts[Math.floor(Math.random()*prompts.length)]); });
+    $('#shuffleBtn').addEventListener('click',()=>{ const order=[...panels]; order.sort(()=>Math.random()-0.5); order.forEach(p=>workspace.appendChild(p)); setStatus('Shuffled panel order.'); });
+
+    // Export workspace with top row flipped 180° (for mini-zine fold workflows)
+    $('#exportPngBtn').addEventListener('click', async ()=>{
+      setStatus('Rendering workspace PNG (top row flipped)…');
+      const allPanels = [...workspace.querySelectorAll('.panel')];
+      const topRow = allPanels.slice(0,4); // first row given 4 columns
+      topRow.forEach(p=>p.classList.add('flip180'));
+      document.body.classList.add('exporting');
+      await new Promise(r=>requestAnimationFrame(r));
+      const canvas = await html2canvas(workspace, {backgroundColor:'#ffffff', scale:2});
+      topRow.forEach(p=>p.classList.remove('flip180'));
+      document.body.classList.remove('exporting');
+      const a=document.createElement('a'); a.download='headmosh-workspace-toprow-flipped.png'; a.href=canvas.toDataURL('image/png'); a.click();
+      setStatus('Workspace PNG exported (top row flipped).');
+    });
+
+    // ===== Sheet export (Letter / Tabloid 11×17) =====
+    const exportSheet = document.getElementById('exportSheet');
+    const tabloidToggle = document.getElementById('tabloidToggle');
+    const currentSize = () => (tabloidToggle && tabloidToggle.checked ? 'tabloid' : 'letter');
+
+    function fillExportSheet(){
+      exportSheet.setAttribute('data-size', currentSize());
+      exportSheet.innerHTML = '';
+      for(let i=0;i<8;i++){
+        const cell=document.createElement('div'); cell.className='printPanel';
+        const c=document.createElement('div'); c.className='content';
+        c.innerHTML = panels[i].querySelector('.content').innerHTML;
+        cell.appendChild(c); exportSheet.appendChild(cell);
+      }
+    }
+
+    document.getElementById('exportSheetBtn').addEventListener('click', async ()=>{
+      setStatus('Rendering sheet PNG…');
+      fillExportSheet();
+      const SCALE_300 = 300/96; // ~3.125 → 300 DPI from CSS inches
+      const canvas = await html2canvas(exportSheet, {backgroundColor:'#ffffff', scale:SCALE_300});
+      const sizeName = currentSize()==='tabloid' ? '11x17' : '8.5x11';
+      const a=document.createElement('a'); a.download=`headmosh-sheet-${sizeName}.png`; a.href=canvas.toDataURL('image/png'); a.click();
+      setStatus('Sheet PNG exported.');
+    });
+
+    // Project save/load
+    $('#saveBtn').addEventListener('click',()=>{ const data = panels.map(p=>({ html:p.querySelector('.content').innerHTML })); const blob=new Blob([JSON.stringify({v:1,p:data},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'headmosh-minimal-zine.json'}); a.click(); URL.revokeObjectURL(url); });
+    $('#loadFile').addEventListener('change', async (e)=>{ const file=e.target.files[0]; if(!file) return; const text=await file.text(); const data=JSON.parse(text); data.p.forEach((pd,i)=>{ const p=panels[i]; p.querySelector('.content').innerHTML=pd.html; }); setStatus('Project loaded.'); });
+
+    // Selected image controls
+    $('#scaleDownBtn').addEventListener('click', ()=>scaleSelected(0.9));
+    $('#scaleUpBtn').addEventListener('click', ()=>scaleSelected(1.1));
+    $('#rotLeftBtn').addEventListener('click', ()=>rotateSelected(-15));
+    $('#rotRightBtn').addEventListener('click', ()=>rotateSelected(15));
+    $('#deleteImgBtn').addEventListener('click', deleteSelected);
+
+    // Keyboard shortcuts (note: this version fires globally; tell me if you want it limited to non-typing states)
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === '['){ e.preventDefault(); scaleSelected(0.9); }
+      if(e.key === ']'){ e.preventDefault(); scaleSelected(1.1); }
+      if(e.key.toLowerCase() === 'r' && e.shiftKey){ e.preventDefault(); rotateSelected(-15); }
+      else if(e.key.toLowerCase() === 'r'){ e.preventDefault(); rotateSelected(15); }
+      if(e.key === 'Delete' || e.key === 'Backspace'){ if(selectedImg){ e.preventDefault(); deleteSelected(); } }
+    });
+
+    setStatus('Ready. Build your 8 panels, then Export Workspace PNG (top row flipped) or Export Sheet PNG (8.5×11 / 11×17).');
+  });
+  </script>
+</body>
+</html>
