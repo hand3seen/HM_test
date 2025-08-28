@@ -201,7 +201,7 @@
     document.addEventListener('keydown', (e)=>{
       if(e.key === '['){ e.preventDefault(); scaleSelected(0.9); }
       if(e.key === ']'){ e.preventDefault(); scaleSelected(1.1); }
-      if(e.key.toLowerCase() === 'r' && e.shiftKey){ e.preventDefault(); rotateSelected(-15); }
+     
       else if(e.key.toLowerCase() === 'r'){ e.preventDefault(); rotateSelected(15); }
       if(e.key === 'Delete' || e.key === 'Backspace'){ if(selectedImg){ e.preventDefault(); deleteSelected(); } }
     });
