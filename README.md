@@ -6,13 +6,11 @@ Permission to create — right in the browser. Make a one‑sheet, 8‑page mini
 
 8 editable panels — click to type; paste or drag images directly into a panel.
 
-B/W Asset Library — dozens of bold, printable SVG objects (waves, starburst, checkers, tape roll, scissors, arrows, headphones, bubbles, etc.). Drag into panels or click Add random B/W object.
+
 
 Shuffle — remix panel order instantly.
 
-Optical background — double‑click a panel to toggle a triangle illusion pattern.
 
-Scribble overlay — add grainy hand‑drawn energy with one click (and clear it).
 
 Save/Load — export your project to JSON (images are saved as data URLs) and load it later.
 
@@ -48,11 +46,11 @@ Add assets: drag from the Asset Library or press Add random B/W object.
 
 Paste images: copy an image then Ctrl/Cmd+V inside a panel.
 
-Triangle background: double‑click a panel.
+
 
 Shuffle: mixes panel positions (visual only).
 
-Scribbles: add/remove for that headmosh grit.
+
 
 Export PNG: downloads the current 8‑panel grid.
 
