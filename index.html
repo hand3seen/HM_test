@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Headmosh Zine Lab — Minimal 8-Panel</title>
-  <meta name="description" content="8-panel zine editor with locked 3:4 panels, paste/drag images, simple image controls, JSON save/load, and workspace PNG export with top row flipped for mini-zine printing.">
+  <meta name="description" content="8-panel zine editor with locked 3:4 panels, paste/drag images, simple image controls, JSON save/load by page number, and workspace PNG export with top row flipped for mini-zine printing.">
   <style>
     :root{ --ink:#111; --paper:#f7f5f1; --gap:10px; --panel-br:12px; }
     html,body{height:100%}
@@ -19,7 +19,6 @@
     .btn{display:inline-flex;align-items:center;gap:8px;border:2px solid #000;padding:8px 10px;border-radius:14px;background:#fff;cursor:pointer;font-weight:700;box-shadow:2px 2px 0 #000;transition:transform .05s}
     .btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #000}
     .btn.block{width:100%;justify-content:center;margin:6px 0}
-    .btn.ghost{background:transparent}
     .row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
     .card{border:2px solid #000;background:#fff;border-radius:16px;padding:12px;box-shadow:3px 3px 0 #000;margin:8px 0}
     .tiny{font-size:12px;opacity:.75}
@@ -29,7 +28,7 @@
     .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap)}
     .panel{position:relative;border:1px solid #999;background:#fff;border-radius:var(--panel-br);box-shadow:1px 1px 0 #bbb;overflow:hidden;aspect-ratio:3/4;transform-origin:center center}
-    .panel .hint{position:absolute;inset:8px auto auto 8px;font-size:11px;opacity:.5;background:#fff;padding:2px 6px;border-radius:100px;border:1px dashed #000}
+    .panel .hint{position:absolute;inset:8px auto auto 8px;font-size:11px;opacity:.65;background:#fff;padding:2px 6px;border-radius:100px;border:1px dashed #000}
     .panel .content{position:absolute;inset:0;padding:10px;white-space:pre-wrap}
     .panel img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto;transition:transform .1s}
     .drop{position:absolute;inset:0;border:2px dashed #0005;border-radius:10px;display:none;place-items:center;background:#00000008}
@@ -74,7 +73,7 @@
           <button class="btn" id="rotRightBtn">Rotate +15°</button>
           <button class="btn" id="deleteImgBtn">Delete</button>
         </div>
-        <p class="tiny">Use the buttons above, or press Delete/Backspace to remove the selected image.</p>
+        <p class="tiny">Use the buttons above, or press <kbd>Delete</kbd>/<kbd>Backspace</kbd> to remove the selected image.</p>
       </div>
 
       <div class="card">
@@ -126,10 +125,15 @@
     const panels = [];
     let selectedImg = null;
 
-    // Build 8 panels
-    for(let i=1;i<=8;i++){
-      const p = document.createElement('div'); p.className='panel'; p.dataset.index=i;
-      const hint = document.createElement('div'); hint.className='hint'; hint.textContent='Page '+i;
+    // Zine page order for labels (left->right, top->bottom)
+    const pageOrder = [1,8,7,6, 2,3,4,5];
+
+    // Build 8 panels in the visual order above
+    for (let i = 0; i < 8; i++) {
+      const pageNum = pageOrder[i];
+      const p = document.createElement('div'); p.className='panel'; p.dataset.page = String(pageNum);
+
+      const hint = document.createElement('div'); hint.className='hint'; hint.textContent='Page '+pageNum;
       const content = document.createElement('div'); content.className='content'; content.contentEditable=true; content.setAttribute('role','textbox');
       const drop = document.createElement('div'); drop.className='drop'; drop.innerHTML='<div class="mono tiny">Drop image here</div>';
 
@@ -170,10 +174,11 @@
     $('#promptBtn').addEventListener('click',()=>{ alert('PROMPT: '+prompts[Math.floor(Math.random()*prompts.length)]); });
     $('#shuffleBtn').addEventListener('click',()=>{ const order=[...panels]; order.sort(()=>Math.random()-0.5); order.forEach(p=>workspace.appendChild(p)); setStatus('Shuffled panel order.'); });
 
+    // Export workspace with top row flipped 180° (for mini-zine fold workflows)
     $('#exportPngBtn').addEventListener('click', async ()=>{
       setStatus('Rendering workspace PNG (top row flipped)…');
       const allPanels = [...workspace.querySelectorAll('.panel')];
-      const topRow = allPanels.slice(0,4);
+      const topRow = allPanels.slice(0,4); // first row (4 columns)
       topRow.forEach(p=>p.classList.add('flip180'));
       document.body.classList.add('exporting');
       await new Promise(r=>requestAnimationFrame(r));
@@ -184,21 +189,42 @@
       setStatus('Workspace PNG exported (top row flipped).');
     });
 
+    // -------- Project save/load (by page number) --------
+    // Save as: { v:2, pages: { "1": "<html>", ... "8": "<html>" } }
     $('#saveBtn').addEventListener('click',()=>{
-      const data = panels.map(p=>({ html:p.querySelector('.content').innerHTML }));
-      const blob=new Blob([JSON.stringify({v:1,p:data},null,2)],{type:'application/json'});
+      const pages = {};
+      panels.forEach(p=>{
+        const page = p.dataset.page;
+        pages[page] = p.querySelector('.content').innerHTML;
+      });
+      const blob=new Blob([JSON.stringify({v:2,pages},null,2)],{type:'application/json'});
       const url=URL.createObjectURL(blob);
       const a=Object.assign(document.createElement('a'),{href:url,download:'headmosh-minimal-zine.json'});
-      a.click();
-      URL.revokeObjectURL(url);
+      a.click(); URL.revokeObjectURL(url);
     });
+
+    // Load supports v:2 (pages map) and legacy v:1 (array)
     $('#loadFile').addEventListener('change', async (e)=>{
       const file=e.target.files[0]; if(!file) return;
       const text=await file.text(); const data=JSON.parse(text);
-      data.p.forEach((pd,i)=>{ const p=panels[i]; p.querySelector('.content').innerHTML=pd.html; });
+
+      if (data && data.pages) {
+        // v2: assign by page number
+        panels.forEach(p=>{
+          const page = p.dataset.page;
+          if (data.pages[page] !== undefined) {
+            p.querySelector('.content').innerHTML = data.pages[page];
+          }
+        });
+      } else if (data && Array.isArray(data.p)) {
+        // legacy v1: best-effort map in current visual order
+        data.p.forEach((pd,i)=>{ const p=panels[i]; if (p && pd && typeof pd.html === 'string') p.querySelector('.content').innerHTML=pd.html; });
+      }
       setStatus('Project loaded.');
+      e.target.value = ''; // reset file input
     });
 
+    // Selected image controls
     $('#scaleDownBtn').addEventListener('click', ()=>scaleSelected(0.9));
     $('#scaleUpBtn').addEventListener('click', ()=>scaleSelected(1.1));
     $('#rotLeftBtn').addEventListener('click', ()=>rotateSelected(-15));
