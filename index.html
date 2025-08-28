@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Headmosh Zine Lab — Minimal 8‑Panel</title>
-  <meta name="description" content="8‑panel zine editor with locked 3:4 panels, paste/drag images, simple image controls, JSON save/load, and workspace PNG export with top row flipped for mini‑zine printing.">
+  <title>Headmosh Zine Lab — Minimal 8-Panel</title>
+  <meta name="description" content="8-panel zine editor with locked 3:4 panels, paste/drag images, simple image controls, JSON save/load, and workspace PNG export with top row flipped for mini-zine printing.">
   <style>
     :root{ --ink:#111; --paper:#f7f5f1; --gap:10px; --panel-br:12px; }
     html,body{height:100%}
@@ -52,7 +52,7 @@
   <div class="app">
     <aside>
       <h1><span class="brand">HEADMOSH</span> <span class="mono">/ Minimal Zine Lab</span></h1>
-      <p class="tiny">8 locked panels (3:4). Paste or drag images. Simple image controls. Export workspace PNG with top row flipped for mini‑zine workflows.</p>
+      <p class="tiny">8 locked panels (3:4). Paste or drag images. Simple image controls. Export workspace PNG with top row flipped for mini-zine workflows.</p>
 
       <div class="card">
         <strong>Actions</strong>
@@ -74,7 +74,7 @@
           <button class="btn" id="rotRightBtn">Rotate +15°</button>
           <button class="btn" id="deleteImgBtn">Delete</button>
         </div>
-        <p class="tiny">Shortcuts: <kbd>[</kbd>/<kbd>]</kbd> scale, <kbd>R</kbd>/<kbd>Shift+R</kbd> rotate, <kbd>Delete</kbd> remove.</p>
+        <p class="tiny">Use the buttons above to adjust the selected image.</p>
       </div>
 
       <div class="card">
@@ -92,7 +92,7 @@
           <li>Click a panel to select it (outline shows).</li>
           <li>Paste images with <kbd>Ctrl/Cmd+V</kbd> directly into a panel.</li>
           <li>Drag image files from your desktop into a panel.</li>
-          <li>Use image controls or shortcuts for quick tweaks.</li>
+          <li>Use the image buttons for quick tweaks.</li>
         </ul>
       </div>
     </aside>
@@ -135,7 +135,7 @@
       const drop = document.createElement('div'); drop.className='drop'; drop.innerHTML='<div class="mono tiny">Drop image here</div>';
 
       ['dragenter','dragover'].forEach(evt=>p.addEventListener(evt,e=>{e.preventDefault();p.classList.add('dragover')}));
-      ;['dragleave','drop'].forEach(evt=>p.addEventListener(evt,e=>{e.preventDefault();p.classList.remove('dragover')}));
+      ['dragleave','drop'].forEach(evt=>p.addEventListener(evt,e=>{e.preventDefault();p.classList.remove('dragover')}));
       p.addEventListener('drop', async (e)=>{
         const file = [...e.dataTransfer.files][0];
         if(file && file.type.startsWith('image/')){ const img = await fileToImg(file); placeImage(p,img); }
@@ -171,7 +171,7 @@
     $('#promptBtn').addEventListener('click',()=>{ alert('PROMPT: '+prompts[Math.floor(Math.random()*prompts.length)]); });
     $('#shuffleBtn').addEventListener('click',()=>{ const order=[...panels]; order.sort(()=>Math.random()-0.5); order.forEach(p=>workspace.appendChild(p)); setStatus('Shuffled panel order.'); });
 
-    // Export workspace with top row flipped 180° (for mini‑zine fold workflows)
+    // Export workspace with top row flipped 180° (for mini-zine fold workflows)
     $('#exportPngBtn').addEventListener('click', async ()=>{
       setStatus('Rendering workspace PNG (top row flipped)…');
       const allPanels = [...workspace.querySelectorAll('.panel')];
@@ -187,25 +187,29 @@
     });
 
     // Project save/load
-    $('#saveBtn').addEventListener('click',()=>{ const data = panels.map(p=>({ html:p.querySelector('.content').innerHTML })); const blob=new Blob([JSON.stringify({v:1,p:data},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'headmosh-minimal-zine.json'}); a.click(); URL.revokeObjectURL(url); });
-    $('#loadFile').addEventListener('change', async (e)=>{ const file=e.target.files[0]; if(!file) return; const text=await file.text(); const data=JSON.parse(text); data.p.forEach((pd,i)=>{ const p=panels[i]; p.querySelector('.content').innerHTML=pd.html; }); setStatus('Project loaded.'); });
+    $('#saveBtn').addEventListener('click',()=>{
+      const data = panels.map(p=>({ html:p.querySelector('.content').innerHTML }));
+      const blob=new Blob([JSON.stringify({v:1,p:data},null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=Object.assign(document.createElement('a'),{href:url,download:'headmosh-minimal-zine.json'});
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    $('#loadFile').addEventListener('change', async (e)=>{
+      const file=e.target.files[0]; if(!file) return;
+      const text=await file.text(); const data=JSON.parse(text);
+      data.p.forEach((pd,i)=>{ const p=panels[i]; p.querySelector('.content').innerHTML=pd.html; });
+      setStatus('Project loaded.');
+    });
 
-    // Selected image controls
+    // Selected image controls (buttons only)
     $('#scaleDownBtn').addEventListener('click', ()=>scaleSelected(0.9));
     $('#scaleUpBtn').addEventListener('click', ()=>scaleSelected(1.1));
     $('#rotLeftBtn').addEventListener('click', ()=>rotateSelected(-15));
     $('#rotRightBtn').addEventListener('click', ()=>rotateSelected(15));
     $('#deleteImgBtn').addEventListener('click', deleteSelected);
 
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e)=>{
-      if(e.key === '['){ e.preventDefault(); scaleSelected(0.9); }
-      if(e.key === ']'){ e.preventDefault(); scaleSelected(1.1); }
-     
-      else if(e.key.toLowerCase() === 'r'){ e.preventDefault(); rotateSelected(15); }
-      if(e.key === 'Delete' || e.key === 'Backspace'){ if(selectedImg){ e.preventDefault(); deleteSelected(); } }
-    });
-
+    // NOTE: Keyboard shortcuts removed so all typing (including "r") works.
     setStatus('Ready. Build your 8 panels, then Export Workspace PNG (top row flipped).');
   });
   </script>
