@@ -74,7 +74,7 @@
           <button class="btn" id="rotRightBtn">Rotate +15°</button>
           <button class="btn" id="deleteImgBtn">Delete</button>
         </div>
-        <p class="tiny">Use the buttons above to adjust the selected image.</p>
+        <p class="tiny">Use the buttons above, or press Delete/Backspace to remove the selected image.</p>
       </div>
 
       <div class="card">
@@ -122,12 +122,11 @@
     const $ = s => document.querySelector(s);
     const setStatus = t => { const n=$('#status'); if(n) n.textContent=t; };
 
-    // Build 8 panels
     const workspace = $('#workspace');
     const panels = [];
-    let selectedPanel = null;
     let selectedImg = null;
 
+    // Build 8 panels
     for(let i=1;i<=8;i++){
       const p = document.createElement('div'); p.className='panel'; p.dataset.index=i;
       const hint = document.createElement('div'); hint.className='hint'; hint.textContent='Page '+i;
@@ -143,12 +142,12 @@
 
       p.addEventListener('paste', async (e)=>{ const item = [...e.clipboardData.items].find(i=>i.type.startsWith('image/')); if(item){ e.preventDefault(); const img = await fileToImg(item.getAsFile()); placeImage(p,img); }});
 
-      p.addEventListener('click', ()=>{ panels.forEach(x=>x.classList.remove('selected')); p.classList.add('selected'); selectedPanel=p; deselectImg(); });
+      p.addEventListener('click', ()=>{ panels.forEach(x=>x.classList.remove('selected')); p.classList.add('selected'); deselectImg(); });
 
       p.append(hint,content,drop); workspace.appendChild(p); panels.push(p);
     }
 
-    // Click to select images inside panels
+    // Image selection
     workspace.addEventListener('click', (e)=>{
       if(e.target && e.target.tagName === 'IMG'){
         selectImg(e.target);
@@ -165,17 +164,16 @@
     function updateTransform(img){ const s=parseFloat(img.dataset.scale||'1'); const r=parseFloat(img.dataset.rot||'0'); img.style.transform = `rotate(${r}deg) scale(${s})`; }
     function scaleSelected(mult){ if(!selectedImg) return; const cur=parseFloat(selectedImg.dataset.scale||'1'); selectedImg.dataset.scale = (cur*mult).toFixed(3); updateTransform(selectedImg); }
     function rotateSelected(deg){ if(!selectedImg) return; const cur=parseFloat(selectedImg.dataset.rot||'0'); selectedImg.dataset.rot = (cur+deg).toFixed(1); updateTransform(selectedImg); }
-    function deleteSelected(){ if(!selectedImg) return; const parent=selectedImg.parentElement; selectedImg.remove(); selectedImg=null; if(parent) parent.focus(); }
+    function deleteSelected(){ if(!selectedImg) return; selectedImg.remove(); selectedImg=null; }
 
     // Buttons
     $('#promptBtn').addEventListener('click',()=>{ alert('PROMPT: '+prompts[Math.floor(Math.random()*prompts.length)]); });
     $('#shuffleBtn').addEventListener('click',()=>{ const order=[...panels]; order.sort(()=>Math.random()-0.5); order.forEach(p=>workspace.appendChild(p)); setStatus('Shuffled panel order.'); });
 
-    // Export workspace with top row flipped 180° (for mini-zine fold workflows)
     $('#exportPngBtn').addEventListener('click', async ()=>{
       setStatus('Rendering workspace PNG (top row flipped)…');
       const allPanels = [...workspace.querySelectorAll('.panel')];
-      const topRow = allPanels.slice(0,4); // first row given 4 columns
+      const topRow = allPanels.slice(0,4);
       topRow.forEach(p=>p.classList.add('flip180'));
       document.body.classList.add('exporting');
       await new Promise(r=>requestAnimationFrame(r));
@@ -186,7 +184,6 @@
       setStatus('Workspace PNG exported (top row flipped).');
     });
 
-    // Project save/load
     $('#saveBtn').addEventListener('click',()=>{
       const data = panels.map(p=>({ html:p.querySelector('.content').innerHTML }));
       const blob=new Blob([JSON.stringify({v:1,p:data},null,2)],{type:'application/json'});
@@ -202,14 +199,20 @@
       setStatus('Project loaded.');
     });
 
-    // Selected image controls (buttons only)
     $('#scaleDownBtn').addEventListener('click', ()=>scaleSelected(0.9));
     $('#scaleUpBtn').addEventListener('click', ()=>scaleSelected(1.1));
     $('#rotLeftBtn').addEventListener('click', ()=>rotateSelected(-15));
     $('#rotRightBtn').addEventListener('click', ()=>rotateSelected(15));
     $('#deleteImgBtn').addEventListener('click', deleteSelected);
 
-    // NOTE: Keyboard shortcuts removed so all typing (including "r") works.
+    // Keep Delete/Backspace shortcut for images only
+    document.addEventListener('keydown', (e)=>{
+      if((e.key === 'Delete' || e.key === 'Backspace') && selectedImg){
+        e.preventDefault();
+        deleteSelected();
+      }
+    });
+
     setStatus('Ready. Build your 8 panels, then Export Workspace PNG (top row flipped).');
   });
   </script>
