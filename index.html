@@ -43,6 +43,15 @@
     .exporting .panel .hint{display:none}
     .exporting .panel.selected{outline:none}
 
+    /* Hide panel chrome during export (affects PNG export only) */
+    body.exporting:before { display: none; }        /* hide paper grain */
+    .exporting .panel { border: none; box-shadow: none; }
+    .exporting .drop { display: none; }
+    .exporting img.img-selected { outline: none; }
+    /* Optional: remove gaps during export */
+    /* .exporting .grid { gap: 0; } */
+
+
     /* Subtle paper grain */
     body:before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 10% 10%,#0001 0 1px,transparent 1px) 0 0/6px 6px,radial-gradient(circle at 70% 80%,#0001 0 1px,transparent 1px) 0 0/9px 9px;opacity:.18;pointer-events:none}
   </style>
