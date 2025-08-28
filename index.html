@@ -51,6 +51,39 @@
     /* Optional: remove gaps during export */
     /* .exporting .grid { gap: 0; } */
 
+/* Workspace width scales with selected paper size */
+#workspace { width: var(--workspace-width, 1100px); margin: 0 auto; }
+
+// ----- Paper size toggle (Letter/Tabloid) -----
+const paperSelect = $('#paperSelect');
+
+function applyPaper(mode){
+  document.body.classList.toggle('paper-letter',  mode === 'letter');
+  document.body.classList.toggle('paper-tabloid', mode === 'tabloid');
+  setStatus(mode === 'tabloid' ? 'Paper: 11×17 (tabloid)' : 'Paper: 8.5×11 (letter)');
+}
+
+// restore last choice (default: letter)
+const savedPaper = localStorage.getItem('paperSize') || 'letter';
+applyPaper(savedPaper);
+if (paperSelect) {
+  paperSelect.value = savedPaper;
+  paperSelect.addEventListener('change', () => {
+    const v = paperSelect.value;
+    applyPaper(v);
+    localStorage.setItem('paperSize', v);
+  });
+}
+
+
+/* Defaults to Letter. Switch to Tabloid by adding .paper-tabloid on <body> */
+.paper-letter  { --workspace-width: 1100px; }  /* ~Letter landscape */
+.paper-tabloid { --workspace-width: 1700px; }  /* ~Tabloid landscape; bump if you want larger */
+
+/* (Optional) slightly larger gaps on tabloid */
+/* .paper-tabloid { --gap: 14px; } */
+
+
 
     /* Subtle paper grain */
     body:before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 10% 10%,#0001 0 1px,transparent 1px) 0 0/6px 6px,radial-gradient(circle at 70% 80%,#0001 0 1px,transparent 1px) 0 0/9px 9px;opacity:.18;pointer-events:none}
@@ -93,6 +126,19 @@
           <input id="loadFile" type="file" accept="application/json" style="display:none"/>
         </div>
       </div>
+
+<div class="card">
+  <strong>Paper</strong>
+  <div class="row">
+    <label class="tiny" for="paperSelect">Workspace width preset</label>
+    <select class="btn" id="paperSelect" aria-label="Paper size">
+      <option value="letter">Letter — 8.5×11 (landscape)</option>
+      <option value="tabloid">Tabloid — 11×17 (landscape)</option>
+    </select>
+  </div>
+  <p class="tiny">Affects on-screen size and the exported PNG. (Flip still applies to the top row.)</p>
+</div>
+
 
       <div class="card">
         <strong>Tips</strong>
