@@ -113,6 +113,16 @@ Step 5: Refold into booklet
 
 ---
 
+## 📚 Documentation
+- [Getting Started](docs/getting-started.md)
+- [Printing Guide](docs/printing-guide.md)
+- [Features](docs/features.md)
+- [Tips & Tricks](docs/tips-and-tricks.md)
+- [FAQ](docs/faq.md)
+- [Changelog](docs/changelog.md)
+
+---
+
 ## 💡 Why Headmosh?  
 
 Datamosh makes glitches into art. **Headmosh** makes half-thoughts, scraps, and overlaps into culture.  
