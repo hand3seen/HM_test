@@ -22,7 +22,7 @@ Turn one sheet of paper into an 8-page mini-zine. Drag, drop, scribble, remix, e
 
 ## 📖 Example Zine  
 
-![Headmosh Zine Example](headmosh-workspace-toprow-flipped%20(31).png)  
+![Headmosh Zine Example](docs/example.png)  
 *Example: “Datamosh → Headmosh” mini-zine made in the lab. Print, fold, cut → booklet in your hands.*  
 
 ---
